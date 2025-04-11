@@ -6,12 +6,40 @@ cos = np.cos
 sqrt = np.sqrt
 
 def amplitude_and_parameter(p, z, r, φ):
+    """Common inputs to the elliptic integrals"""
     varφ = φ/2
     m = - 4 * p * r / ((p - r)**2 + z**2)
     return varφ, m
 
 def q_term(p, z, r):
+    """A common term in the reduced integrals"""
     return p**4 - 2 * p**2 * (r**2 - z**2) + (r**2 + z**2)**2
+
+###############################################
+# Key for reduced integral names
+#
+# [gh]_[HV][IABc][a][{LEKF}_term]
+#  |    |  |     |   |
+#  |    |  |     |   L - polynomial coefficient
+#  |    |  |     |   E - elliptic E coefficient
+#  |    |  |     |   K - elliptic K coefficient
+#  |    |  |     |   F - elliptic F coefficient
+#  |    |  |     |   
+#  |    |  |     a - angled field
+#  |    |  |         
+#  |    |  I - Isotropic distribution         
+#  |    |  A - "A-mode" proportional to sin²θ
+#  |    |  B - "B-mode" proportional to 1 + cos²θ
+#  |    |  c - cos²θ, used to make the B-mode
+#  |    |
+#  |    H - intensity on horizontal surface
+#  |    V - intensity on vertical surface
+#  |
+#  g - reduced integrals
+#  h - individual terms which sum to g
+
+
+###############################################
 
 ##################################
 # Isotropic horizontal same height
@@ -33,19 +61,23 @@ def g_HI_same_height(*, p, r, φ):
 #########################
 
 def h_HIL_term(p, z, r, φ):
+    """Horizontal, isotropic: leading term"""
     q = q_term(p, z, r)
     numer = 4 * p**2 * (p**2 - r**2 + z**2) * sin(φ)
     denom  = q * sqrt(p**2 + r**2 + z**2 - 2 * p * r * cos(φ))
     return numer/denom
 
 def h_HIE_term(p, z, r, φ):
+    """Horizontal, isotropic: E term"""
     q = q_term(p, z, r)
     return 2 * p * sqrt((p-r)**2 + z**2) * (p**2 - r**2 + z**2) / (q * r)
 
 def h_HIK_term(p, z, r, φ):
+    """Horizontal, isotropic: K term"""
     return (-2 * p ) / (r * sqrt((p - r)**2 + z**2))
 
 def g_HI(p, z, r, φ):
+    """Horizontal, isotropic"""
     varφ, m = amplitude_and_parameter(p, z, r, φ)
     h_HIL = h_HIL_term(p, z, r, φ)
     h_HIE = h_HIE_term(p, z, r, φ) * ellipeinc(varφ, m)
@@ -57,6 +89,7 @@ def g_HI(p, z, r, φ):
 #########################
 
 def g_VI(p, z, r, φ):
+    """Vertical, isotropic"""
     # L term
     p2, r2, z2 = p**2, r**2, z**2
 
@@ -79,6 +112,7 @@ def g_VI(p, z, r, φ):
 ####################################
 
 def g_HA(p, z, r, φ):
+    """Horizontal, A-mode"""
     varφ, m = amplitude_and_parameter(p, z, r, φ)
     q = q_term(p, z, r)
 
@@ -109,6 +143,7 @@ def g_HA(p, z, r, φ):
 ####################################
 
 def g_Hc(p, z, r, φ):
+    """Horizontal, cosine"""
     varφ, m = amplitude_and_parameter(p, z, r, φ)
     q = q_term(p, z, r)
 
@@ -135,6 +170,7 @@ def g_Hc(p, z, r, φ):
     return h_HcL + h_HcF*ellipfinc(varφ, m) + h_HcE*ellipeinc(varφ, m)
 
 def g_Hc_version2(p, z, r, φ):
+    """Horizontal, cosine"""
     # may be like 10% faster, but that's all.
     # one advantage is that the code is more readable.
     varφ, m = amplitude_and_parameter(p, z, r, φ)
@@ -169,6 +205,7 @@ def g_Hc_version2(p, z, r, φ):
 ####################################
 
 def g_HAa(p, z, r, α, β, φ):
+    """Horizontal, A-mode, angled field"""
     varφ, m = amplitude_and_parameter(p, z, r, φ)
     q = q_term(p, z, r)
 
@@ -242,6 +279,7 @@ def g_HAa(p, z, r, α, β, φ):
 ####################################
 
 def g_Hca(p, z, r, α, β, φ):
+    """Horizontal, cosine, angled field"""
     varφ, m = amplitude_and_parameter(p, z, r, φ)
     q = q_term(p, z, r)
 
@@ -312,6 +350,7 @@ def g_Hca(p, z, r, α, β, φ):
 ####################################
 
 def g_HBa(p, z, r, α, β, φ):
+    """Horizontal, B-mode, angled field"""
     varφ, m = amplitude_and_parameter(p, z, r, φ)
     q = q_term(p, z, r)
 
@@ -382,6 +421,7 @@ def g_HBa(p, z, r, α, β, φ):
 ####################################
 
 def g_VAa(p, z, r, α, β, φ):
+    """Vertical, A-mode, angled field"""
     varφ, m = amplitude_and_parameter(p, z, r, φ)
     q = q_term(p, z, r)
 
@@ -448,6 +488,7 @@ def g_VAa(p, z, r, α, β, φ):
     return h_VAaL + h_VAaF + h_VAaE
 
 def g_Vca(p, z, r, α, β, φ):
+    """Vertical, cosine, angled field"""
     varφ, m = amplitude_and_parameter(p, z, r, φ)
     q = q_term(p, z, r)
 
@@ -514,6 +555,7 @@ def g_Vca(p, z, r, α, β, φ):
 
 
 def g_VBa(p, z, r, α, β, φ):
+    """Vertical, B-mode, angled field"""
     varφ, m = amplitude_and_parameter(p, z, r, φ)
     q = q_term(p, z, r)
 
