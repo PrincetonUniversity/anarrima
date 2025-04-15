@@ -1,14 +1,14 @@
 [project]
 name = "anarrima"
 version = "0.1.0"
-description = "Add your description here"
+description = "Calculate neutron wall loads in axisymmetric geometry"
 readme = "README.md"
 authors = [
     { name = "Jacob Schwartz", email = "jacob@jaschwartz.net" }
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
-    "jax>=0.4.38",
+    "jax>=0.5.3",
     "numpy>=2.2.0",
     "scipy>=1.14.1",
 ]
