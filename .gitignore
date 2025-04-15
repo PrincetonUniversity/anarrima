@@ -11,3 +11,6 @@ wheels/
 
 # Notebooks for development
 *.ipynb
+
+# UV
+.python-version
