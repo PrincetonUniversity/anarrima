@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Jacob Schwartz", email = "jacob@jaschwartz.net" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "jax>=0.5.3",
     "numpy>=2.2.0",
