@@ -19,24 +19,24 @@ def q_term(p, z, r):
 # Key for reduced integral names
 #
 # [gh]_[HV][IABc][a][{LEKF}_term]
-#  |    |  |     |   |
-#  |    |  |     |   L - polynomial coefficient
-#  |    |  |     |   E - elliptic E coefficient
-#  |    |  |     |   K - elliptic K coefficient
-#  |    |  |     |   F - elliptic F coefficient
-#  |    |  |     |   
-#  |    |  |     a - angled field
-#  |    |  |         
-#  |    |  I - Isotropic distribution         
-#  |    |  A - "A-mode" proportional to sin²θ
-#  |    |  B - "B-mode" proportional to 1 + cos²θ
-#  |    |  c - cos²θ, used to make the B-mode
+#  |    |   |     |   |
+#  |    |   |     |   L - polynomial term
+#  |    |   |     |   E - elliptic E coefficient
+#  |    |   |     |   K - elliptic K coefficient
+#  |    |   |     |   F - elliptic F coefficient
+#  |    |   |     |   
+#  |    |   |     a - angled field
+#  |    |   |         
+#  |    |   I - Isotropic distribution         
+#  |    |   A - "A-mode" proportional to sin²θ
+#  |    |   B - "B-mode" proportional to 1 + cos²θ
+#  |    |   c - cos²θ, used to make the B-mode
 #  |    |
 #  |    H - intensity on horizontal surface
 #  |    V - intensity on vertical surface
 #  |
 #  g - reduced integrals
-#  h - individual terms which sum to g
+#  h - individual terms which sum to g; also has a 
 
 
 ###############################################
@@ -111,6 +111,47 @@ def g_VI(p, z, r, φ):
 # Horizontal, A-mode, toroidal field
 ####################################
 
+def h_HAL(p, z, r, φ):
+    q = q_term(p, z, r)
+
+    sinφ = sin(φ)
+    cosφ = cos(φ)
+    z2 = z**2
+    p2 = p**2
+
+    # L term
+    numerator1 = -2 * sinφ * (
+        -4*p**6 + r**6 - 6*p**4*z2 + 2*z**6 + 2*r**4*(p2 + 2*z2) +
+        r**2*(p2 + z2)*(p2 + 5*z2) -
+        p*r*(-7*p**4 + r**4 - 2*p2*z2 + 5*z**4 + 6*r**2*(p2 + z2))*cosφ
+    )
+    denominator1 = 3 * q * (p2 + r**2 + z2 - 2*p*r*cos(φ))**(3/2)
+    h_HAL = numerator1 / denominator1
+
+    return h_HAL
+
+def h_HAF(p, z, r, φ):
+    varφ, m = amplitude_and_parameter(p, z, r, φ)
+
+    z2 = z**2
+    p2 = p**2
+
+    return 2*(-p2 + r**2 + 2*z2)*ellipfinc(varφ, m) / \
+            (3*p*r*sqrt((p - r)**2 + z2))
+
+def h_HAE(p, z, r, φ):
+    """Horizontal, A-mode, E term"""
+    varφ, m = amplitude_and_parameter(p, z, r, φ)
+    q = q_term(p, z, r)
+
+    z2 = z**2
+    p2 = p**2
+
+    h_HAE = -2*sqrt((p - r)**2 + z2)*(-p**4 + r**4 + (p2 + 3*r**2)*z2 + 2*z**4)* \
+            ellipeinc(varφ, m)/(3*p*q*r)
+
+    return h_HAE
+
 def g_HA(p, z, r, φ):
     """Horizontal, A-mode"""
     varφ, m = amplitude_and_parameter(p, z, r, φ)
@@ -130,13 +171,13 @@ def g_HA(p, z, r, φ):
     denominator1 = 3 * q * (p2 + r**2 + z2 - 2*p*r*cos(φ))**(3/2)
     h_HAL = numerator1 / denominator1
 
-    h_HAK = 2*(-p2 + r**2 + 2*z2)*ellipfinc(varφ, m) / \
+    h_HAF = 2*(-p2 + r**2 + 2*z2)*ellipfinc(varφ, m) / \
             (3*p*r*sqrt((p - r)**2 + z2))
 
     h_HAE = -2*sqrt((p - r)**2 + z2)*(-p**4 + r**4 + (p2 + 3*r**2)*z2 + 2*z**4)* \
             ellipeinc(varφ, m)/(3*p*q*r)
 
-    return h_HAL + h_HAK + h_HAE
+    return h_HAL + h_HAF + h_HAE
 
 ####################################
 # Horizontal, cosine, toroidal field
@@ -144,35 +185,6 @@ def g_HA(p, z, r, φ):
 
 def g_Hc(p, z, r, φ):
     """Horizontal, cosine"""
-    varφ, m = amplitude_and_parameter(p, z, r, φ)
-    q = q_term(p, z, r)
-
-    cosφ = cos(φ)
-
-    # First term (h_HcL)
-    numer_L = (
-        2*p**6 + (r**2 + z**2)**2*(r**2 + 2*z**2) + p**4*(r**2 + 6*z**2) +
-        p**2*(-4*r**4 + 6*r**2*z**2 + 6*z**4) -
-        p*r*(5*p**4 - 6*p**2*r**2 + r**4 + 2*(5*p**2 + 3*r**2)*z**2 + 5*z**4)*cosφ
-    )
-    denom_L = 3 * q * (p**2 + r**2 + z**2 - 2*p*r*cosφ)**(3/2)
-    initial_fraction = 2 * sin(φ) / denom_L
-    h_HcL = initial_fraction * numer_L
-
-    # Second term (hHcF) - elliptic integral of first kind
-    h_HcF = -2*(2*p**2 + r**2 + 2*z**2) / (3*p*r*sqrt((p - r)**2 + z**2))
-
-    # Third term (hHcE) - elliptic integral of second kind
-    numer_E = 2*(2*p**4 - 3*p**2*r**2 + r**4 + (4*p**2 + 3*r**2)*z**2 + 2*z**4)
-    denom_E = (3*p*r*sqrt((p - r)**2 + z**2)*((p + r)**2 + z**2))
-    h_HcE = numer_E / denom_E
-
-    return h_HcL + h_HcF*ellipfinc(varφ, m) + h_HcE*ellipeinc(varφ, m)
-
-def g_Hc_version2(p, z, r, φ):
-    """Horizontal, cosine"""
-    # may be like 10% faster, but that's all.
-    # one advantage is that the code is more readable.
     varφ, m = amplitude_and_parameter(p, z, r, φ)
     q = q_term(p, z, r)
 

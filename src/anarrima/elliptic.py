@@ -19,6 +19,9 @@ def ellipeinc(varφ, m):
     """
     return scipy_ellipeinc(varφ, m)
 
+# This will fail to evaluate if m==0 or m==1.
+# However, since m = -4 p r / ((p-r)² + z²) it is strictly negative
+# for physically meaningful values of m
 @ellipfinc.defjvp
 def ellipfinc_jvp(primals, tangents):
     φ, m = primals
