@@ -212,6 +212,37 @@ def g_Hc(p, z, r, φ):
 
     return h_HcL + h_HcF*ellipfinc(varφ, m) + h_HcE*ellipeinc(varφ, m)
 
+####################################
+# Horizontal, B-mode, toroidal field
+####################################
+
+def g_HB(p, z, r, φ):
+    """Horizontal, B-mode"""
+    varφ, m = amplitude_and_parameter(p, z, r, φ)
+    q = q_term(p, z, r)
+
+    cosφ, sinφ = cos(φ), sin(φ)
+    p2, r2, z2 = p**2, r**2, z**2
+    p4, r4, z4 = p2**2, r2**2, z2**2
+    p6 = p**6
+
+    # First term (h_HcL)
+    frac = sinφ / (2 * q * (p2 + r2 + z2 - 2*p*r*cosφ)**(3/2))
+    term_1 = 4 * p6 + (r2 + z2)**2 * (r2 + 2 * z2)   
+    term_2 = p4 * (r2 + 10 * z2) + p2 * (-6 * r4 + 6 * r2 * z2 + 8 * z4)
+    term_3 = - p * r * (9 * p4 + r4 + 6 * r2 * z2 + 5 * z4 + 2 * p2 * (-5 * r2 + 7 * z2))
+    numer_L = term_1 + term_2 + term_3 * cosφ
+    h_HcL = frac * numer_L
+
+    # Second term (hHcF) - elliptic integral of first kind
+    h_HcF = -(3*p2 + r2 + 2*z2) * ellipfinc(varφ, m) / (2*p*r*sqrt((p - r)**2 + z2))
+
+    # Third term (hHcE) - elliptic integral of second kind
+    frac_E = sqrt((p - r)**2 + z2) * ellipeinc(varφ, m) / (2 * p * q * r)
+    numer_E = (3 * p4 + r4 + 3 * r2 * z2 + 2 * z4 + p2 * (-4 * r2 + 5 * z2))
+    h_HcE = frac_E * numer_E
+
+    return h_HcL + h_HcF + h_HcE
 
 ####################################
 # Horizontal, A-mode, angled field
@@ -434,6 +465,7 @@ def g_HBa(p, z, r, α, β, φ):
 ####################################
 
 def g_VA(p, z, r, φ):
+    """Vertical, A-mode, toroidal field"""
     varφ, m = amplitude_and_parameter(p, z, r, φ)
     q = q_term(p, z, r)
     p2, r2, z2 = p**2, r**2, z**2
@@ -460,16 +492,55 @@ def g_VA(p, z, r, φ):
 ####################################
 
 def g_Vc(p, z, r, φ):
+    """Vertical, cosine, toroidal field"""
     varφ, m = amplitude_and_parameter(p, z, r, φ)
-    pass
+    q = q_term(p, z, r)
+
+    p2, r2, z2 = p**2, r**2, z**2
+    p4 = p2**2
+
+    cosφ = cos(φ)
+    sinφ = sin(φ)
+    term_1 = p4 + (r2 + z2)**2 + 2 * p2 * (3 * r2 + z2)
+    term_2 = - 4 * p * r * (p2 + r2 + z2) * cosφ
+    numer = 2 * r * z * (term_1 + term_2) * sinφ
+    denom = 3 * q * (p2 + r2 + z2 - 2 * p * r * cosφ)**(3/2)
+    h_VcL = numer / denom
+
+    h_VcF = - 2 * z * ellipfinc(varφ, m) / \
+        (3 * p * sqrt((p-r)**2 + z2))
+    h_VcE = 2 * z * (p2 + r2 + z2) * sqrt((p - r)**2 + z2) * \
+        ellipeinc(varφ, m) / (3*p*q)
+
+    return h_VcL + h_VcF + h_VcE
 
 ####################################
 # Vertical, B-mode, toroidal field
 ####################################
 
 def g_VB(p, z, r, φ):
+    """Vertical, B-mode, toroidal field"""
     varφ, m = amplitude_and_parameter(p, z, r, φ)
-    pass
+    q = q_term(p, z, r)
+
+    p2, r2, z2 = p**2, r**2, z**2
+    p4 = p2**2
+
+    cosφ = cos(φ)
+    sinφ = sin(φ)
+
+    term_1 = 5 * p4 + (r2 + z2)**2 + 2 * p2 * (5 * r2 + 3 * z2)
+    term_2 = -4 * p * r * (3 * p2 + r2 + z2) * cosφ
+    numer = r * z * (term_1 + term_2) * sinφ
+    denom = 2 * q * (p2 + r2 + z2 - 2 * p * r * cosφ)**(3/2)
+    h_VBL = numer / denom
+
+    h_VBF = -z * ellipfinc(varφ, m) / (2 * p * sqrt((p - r)**2 + z2))
+
+    h_VBE = z * (3 * p2 + r2 + z2) * sqrt((p - r)**2 + z2) * \
+            ellipeinc(varφ, m) / (2 * p * q)
+
+    return h_VBL + h_VBF + h_VBE
 
 ####################################
 # Vertical, A-mode, angled field
