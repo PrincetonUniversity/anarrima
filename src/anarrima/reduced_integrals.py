@@ -16,7 +16,7 @@ def q_term(p, z, r):
     return p**4 - 2 * p**2 * (r**2 - z**2) + (r**2 + z**2)**2
 
 ###############################################
-# Key for reduced integral names
+# Key for function names
 #
 # [gh]_[HV][IABc][a][{LEKF}_term]
 #  |    |   |     |   |
@@ -32,8 +32,8 @@ def q_term(p, z, r):
 #  |    |   B - "B-mode" proportional to 1 + cos²θ
 #  |    |   c - cos²θ, used to make the B-mode
 #  |    |
-#  |    H - intensity on horizontal surface
-#  |    V - intensity on vertical surface
+#  |    H - horizontal-normal component
+#  |    V - vertical-normal component
 #  |
 #  g - reduced integrals
 #  h - individual terms which sum to g; also has a 
@@ -211,6 +211,7 @@ def g_Hc(p, z, r, φ):
     h_HcE = numer_E / denom_E
 
     return h_HcL + h_HcF*ellipfinc(varφ, m) + h_HcE*ellipeinc(varφ, m)
+
 
 ####################################
 # Horizontal, A-mode, angled field
@@ -427,6 +428,48 @@ def g_HBa(p, z, r, α, β, φ):
     h_HBaE = frac * numer * ellipeinc(varφ, m)
 
     return h_HBaL + h_HBaF + h_HBaE
+
+####################################
+# Vertical, A-mode, toroidal field
+####################################
+
+def g_VA(p, z, r, φ):
+    varφ, m = amplitude_and_parameter(p, z, r, φ)
+    q = q_term(p, z, r)
+    p2, r2, z2 = p**2, r**2, z**2
+    p4 = p2**2
+
+    cosφ = cos(φ)
+    sinφ = sin(φ)
+
+    term_1 = -11 * p4 + (r2 + z2)**2 - 2 * p2 * (3 * r2 + 5 * z2)
+    term_2 = 4 * p * r * (5 * p2 - r2 - z2) * cosφ
+    numer = - 2 * r * z * (term_1 + term_2) * sinφ
+    denom = 3 * q * (p2 + r2 + z2 - 2 * p * r * cosφ)**(3/2)
+    h_VAL = numer / denom
+
+    h_VAF = 2 * z * ellipfinc(varφ, m) / \
+        (3 * p * sqrt((p - r)**2 + z2))
+    h_VAE = 2 * z * (5 * p2 - r2 - z2) * sqrt(p2 - 2 * p * r + r2 + z2) * \
+        ellipeinc(varφ, m) / (3*p*q)
+
+    return h_VAL + h_VAF + h_VAE
+
+####################################
+# Vertical, cosine, toroidal field
+####################################
+
+def g_Vc(p, z, r, φ):
+    varφ, m = amplitude_and_parameter(p, z, r, φ)
+    pass
+
+####################################
+# Vertical, B-mode, toroidal field
+####################################
+
+def g_VB(p, z, r, φ):
+    varφ, m = amplitude_and_parameter(p, z, r, φ)
+    pass
 
 ####################################
 # Vertical, A-mode, angled field

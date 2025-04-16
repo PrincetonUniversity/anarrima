@@ -47,6 +47,11 @@ def test_g_HI_sum():
     c = g.g_Hc(p=p, z=z, r=r, φ=f)
     assert iso == approx(a + c, abs=high_accuracy)
 
+def test_g_HA_vs_g_HAa():
+    toroidal = g.g_HA(p=p, z=z, r=r, φ=f)
+    angled = g.g_HAa(p=p, z=z, r=r, α=0, β=0, φ=f)
+    assert toroidal == approx(angled, rel=high_accuracy)
+
 def test_g_VI_sum():
     iso = g.g_VI(p=p, z=z, r=r, φ=f)
     a = g.g_VAa(p=p, z=z, r=r, α=α, β=β, φ=f)
