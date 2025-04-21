@@ -19,6 +19,7 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "jaxopt>=0.8.5",
     "matplotlib>=3.10.0",
     "pytest>=8.3.4",
 ]
