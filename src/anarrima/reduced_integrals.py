@@ -400,10 +400,9 @@ def g_HBa(p, z, r, α, β, φ):
 
     # Precompute powers
     p2, r2, z2 = p**2, r**2, z**2
-    r3 = r2*r
     p4, r4, z4 = p2**2, r2**2, z2**2
     p6, r6, z6 = p4*p2, r4*r2, z4*z2
-    p8, z8 = p4**2, z4**2
+    p8 = p4**2
     p10 = p8*p2
 
     # Precompute trig functions
@@ -557,14 +556,9 @@ def g_VAa(p, z, r, α, β, φ):
     p6 = p4*p2
     p8 = p4**2
     r2 = r**2
-    r3 = r2*r
     r4 = r2**2
-    r6 = r4*r2
-    r8 = r4**2
     z2 = z**2
     z4 = z2**2
-    z6 = z2*z4
-    z8 = z4**2
 
     # Precompute trig functions
     cosφ = cos(φ)
@@ -624,14 +618,9 @@ def g_Vca(p, z, r, α, β, φ):
     p6 = p4*p2
     p8 = p4**2
     r2 = r**2
-    r3 = r2*r
     r4 = r2**2
-    r6 = r4*r2
-    r8 = r4**2
     z2 = z**2
     z4 = z2**2
-    z6 = z2*z4
-    z8 = z4**2
 
     # Precompute trig functions
     cosφ, sinφ = cos(φ), sin(φ)
@@ -691,14 +680,9 @@ def g_VBa(p, z, r, α, β, φ):
     p6 = p4*p2
     p8 = p4**2
     r2 = r**2
-    r3 = r2*r
     r4 = r2**2
-    r6 = r4*r2
-    r8 = r4**2
     z2 = z**2
     z4 = z2**2
-    z6 = z2*z4
-    z8 = z4**2
 
     # Precompute trig functions
     cosφ, sinφ = cos(φ), sin(φ)
