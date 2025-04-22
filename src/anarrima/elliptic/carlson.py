@@ -9,7 +9,7 @@ def rf(x0, y0, z0):
     """
     """
 
-    NUM_LOOPS = 6
+    NUM_LOOPS = 8
 
     v0 = jnp.array([x0, y0, z0])
     A0 = jnp.sum(v0) / 3
@@ -50,7 +50,7 @@ def rd(x0, y0, z0):
     """
     """
 
-    NUM_LOOPS=6
+    NUM_LOOPS=8
 
     v0 = jnp.array([x0, y0, z0])
     A0 = (x0 + y0 + 3*z0) / 5
