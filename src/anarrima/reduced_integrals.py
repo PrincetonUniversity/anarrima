@@ -1,5 +1,5 @@
 import numpy as np
-from anarrima.elliptic import ellipeinc, ellipfinc
+from anarrima.elliptic.legendre import ellipeinc, ellipfinc
 
 sin = np.sin
 cos = np.cos

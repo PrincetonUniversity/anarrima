@@ -1,4 +1,5 @@
 import jax
+jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jax.lax import scan
 
@@ -6,9 +7,6 @@ sqrt = jnp.sqrt
 
 @jax.custom_jvp
 def rf(x0, y0, z0):
-    """
-    """
-
     NUM_LOOPS = 8
 
     v0 = jnp.array([x0, y0, z0])
@@ -35,15 +33,12 @@ def rf(x0, y0, z0):
     e2 = x * y - z * z
     e3 = x * y * z
 
-    return (
-        1
-        - e2 / 10
-        + e3 / 14
-        + e2 * e2 / 24
-        - 3 * e2 * e3 / 44
-        + (5 * e2**3 / 208
-        + 3 * e3**2 / 104)
-    ) / sqrt(an)
+    return ( 1 - e2 / 10
+               + e3 / 14
+               + e2 * e2 / 24
+               - 3 * e2 * e3 / 44
+               + 5 * e2**3 / 208 
+               + 3 * e3**2 / 104) / sqrt(an)
 
 
 def rd(x0, y0, z0):
