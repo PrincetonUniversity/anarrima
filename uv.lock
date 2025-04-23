@@ -14,7 +14,6 @@ source = { editable = "." }
 dependencies = [
     { name = "jax" },
     { name = "numpy" },
-    { name = "scipy" },
 ]
 
 [package.dev-dependencies]
@@ -22,6 +21,7 @@ dev = [
     { name = "jaxopt" },
     { name = "matplotlib" },
     { name = "pytest" },
+    { name = "scipy" },
 ]
 lint = [
     { name = "ruff" },
@@ -31,7 +31,6 @@ lint = [
 requires-dist = [
     { name = "jax", specifier = ">=0.5.3" },
     { name = "numpy", specifier = ">=2.2.0" },
-    { name = "scipy", specifier = ">=1.14.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -39,6 +38,7 @@ dev = [
     { name = "jaxopt", specifier = ">=0.8.5" },
     { name = "matplotlib", specifier = ">=3.10.0" },
     { name = "pytest", specifier = ">=8.3.4" },
+    { name = "scipy", specifier = ">=1.15.2" },
 ]
 lint = [{ name = "ruff", specifier = ">=0.8.4" }]
 

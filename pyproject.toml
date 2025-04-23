@@ -10,7 +10,6 @@ requires-python = ">=3.11"
 dependencies = [
     "jax>=0.5.3",
     "numpy>=2.2.0",
-    "scipy>=1.14.1",
 ]
 
 [build-system]
@@ -22,6 +21,7 @@ dev = [
     "jaxopt>=0.8.5",
     "matplotlib>=3.10.0",
     "pytest>=8.3.4",
+    "scipy>=1.15.2",
 ]
 lint = [
     "ruff>=0.8.4",
