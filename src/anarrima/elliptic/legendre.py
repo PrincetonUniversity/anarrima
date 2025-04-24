@@ -1,4 +1,5 @@
-from anarrima.elliptic.carlson import rf, rd
+from anarrima.elliptic.carlson import rf as elliprf
+from anarrima.elliptic.carlson import rd as elliprd
 import jax
 import jax.numpy as jnp
 
@@ -7,17 +8,17 @@ sin = jnp.sin
 cos = jnp.cos
 
 @jax.custom_jvp
-def finc(φ, m):
+def ellipfinc(φ, m):
     """Incomplete elliptic integral of the first kind """
     sinφ = sin(φ)
     sin_sq_φ = jnp.square(sinφ)
     x = 1. - sin_sq_φ
     y = 1. - m * sin_sq_φ
     z = 1.
-    return sinφ * rf(x, y, z)
+    return sinφ * elliprf(x, y, z)
 
 @jax.custom_jvp
-def einc(φ, m):
+def ellipeinc(φ, m):
     """Incomplete elliptic integral of the second kind """
     sinφ = sin(φ)
     sin_sq_φ = jnp.square(sinφ)
@@ -25,29 +26,29 @@ def einc(φ, m):
     x = 1. - sin_sq_φ
     y = 1. - m * sin_sq_φ
     z = 1.
-    return sinφ * rf(x, y, z) - m * sin_cu_φ * rd(x, y, z) / 3
+    return sinφ * elliprf(x, y, z) - m * sin_cu_φ * elliprd(x, y, z) / 3
 
 @jax.jit
-def f_e_fused(φ, m):
+def ellip_finc_einc_fused(φ, m):
     sinφ = sin(φ)
     sin_sq_φ = jnp.square(sinφ)
     sin_cu_φ = sin_sq_φ * sinφ
     x = 1. - sin_sq_φ
     y = 1. - m * sin_sq_φ
     z = 1.
-    ellip_f = sinφ * rf(x, y, z)
-    ellip_e = ellip_f - m * sin_cu_φ * rd(x, y, z) / 3
-    return ellip_f, ellip_e
+    finc = sinφ * elliprf(x, y, z)
+    einc = finc - m * sin_cu_φ * elliprd(x, y, z) / 3
+    return finc, einc
 
 # This will fail to evaluate if m==0 or m==1.
 # However, since m = -4 p r / ((p-r)² + z²) in the Anarrima package geometry,
 # it is strictly negative for physically meaningful values of m
-@finc.defjvp
-def finc_jvp(primals, tangents):
+@ellipfinc.defjvp
+def ellipfinc_jvp(primals, tangents):
     φ, m = primals
     φ_dot, m_dot = tangents
 
-    finc, einc = f_e_fused(φ, m)
+    finc, einc = ellip_finc_einc_fused(φ, m)
 
     primal_out = finc
 
@@ -62,11 +63,11 @@ def finc_jvp(primals, tangents):
     tangent_out = d_ellipf_dφ * φ_dot + d_ellipf_dm * m_dot
     return primal_out, tangent_out
 
-@einc.defjvp
-def einc_jvp(primals, tangents):
+@ellipeinc.defjvp
+def ellipeinc_jvp(primals, tangents):
     φ, m = primals
     φ_dot, m_dot = tangents
-    finc, einc = f_e_fused(φ, m)
+    finc, einc = ellip_finc_einc_fused(φ, m)
     primal_out = einc
 
     d_ellipe_dφ = sqrt(1 - m*sin(φ)**2)
@@ -82,7 +83,7 @@ def einc_jvp(primals, tangents):
 def k(m):
     """Legendre K"""
     use_standard = m > -1e10
-    standard_eval = rf(0., 1. - m, 1.)
+    standard_eval = elliprf(0., 1. - m, 1.)
     # backup series for large, negative m
     large_neg_series_eval = _k_series_large_negative_2_terms(m)
     return jnp.where(use_standard, standard_eval, large_neg_series_eval)
