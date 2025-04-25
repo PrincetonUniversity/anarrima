@@ -1,9 +1,9 @@
-import numpy as np
+import jax.numpy as jnp
 from anarrima.elliptic.legendre import ellipeinc, ellipfinc
 
-sin = np.sin
-cos = np.cos
-sqrt = np.sqrt
+sin = jnp.sin
+cos = jnp.cos
+sqrt = jnp.sqrt
 
 def amplitude_and_parameter(p, z, r, φ):
     """Common inputs to the elliptic integrals"""
