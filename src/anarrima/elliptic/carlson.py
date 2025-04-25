@@ -57,6 +57,7 @@ def _rf_jvp(n_loops, primals, tangents):
 def rd(x0, y0, z0):
     return _rd(x0, y0, z0, 8)
 
+@partial(custom_jvp, nondiff_argnums=(3,))
 def _rd(x0, y0, z0, n_loops):
     """
     """
@@ -108,12 +109,24 @@ def _rd(x0, y0, z0, n_loops):
 
     return sum_term + series_term
 
+@_rd.defjvp
+def _rd_jvp(n_loops, primals, tangents):
+    x, y, z = primals
+    x_dot, y_dot, z_dot = tangents
 
-# drfdx = lambda x_dot, primal_out, x, y, z: -rd(y, z, x)/6 * x_dot
-# drfdy = lambda y_dot, primal_out, x, y, z: -rd(z, x, y)/6 * y_dot
-# drfdz = lambda z_dot, primal_out, x, y, z: -rd(x, y, z)/6 * z_dot
-# rf.defjvps(drfdx, drfdy, drfdz)
+    rd0 = _rd(x, y, z, n_loops)
+    rf0 = _rf(x, y, z, n_loops)
+    rd_x_last = _rd(y, z, x, n_loops)
+    rd_y_last = _rd(x, z, y, n_loops)
 
-# rf_quick.defjvps(lambda x_dot, primal_out, x, y, z: -rd(y, z, x)/6 * x_dot,
-#                  lambda y_dot, primal_out, x, y, z: -rd(z, x, y)/6 * y_dot,
-#                  lambda z_dot, primal_out, x, y, z: -rd(x, y, z)/6 * z_dot)
+    primals_out = rd0
+
+    drd_dx = (-rd0 + rd_x_last)/(2 * (x - z))
+    drd_dy = (-rd0 + rd_y_last)/(2 * (y - z))
+    numer = -3 * sqrt(x * y) + z**(3/2)*(2*(x + y - 2*z) * rd0 + 3 * rf0)
+    denom = 2 * z**(3/2) * (z - x) * (z - y)
+    drd_dz = numer / denom
+    tangents_out = (drd_dx * x_dot
+                   + drd_dy * y_dot
+                   + drd_dz * z_dot)
+    return primals_out, tangents_out
