@@ -200,3 +200,69 @@ def _ellipe_large_negative_m_2_terms(m):
     term_2 = (3 - 8 * ln2 - 2 * lnw)/(64 * w)
     return jax.lax.rsqrt(w) * (term_0 + (term_1 + term_2))
 
+def ellipe(m):
+    """Legendre E"""
+    above_large_negative_range = m > -1e5
+    below_0 = m < 0
+    near_1 = m > 1 - 1e-4
+    below_1 = m < 1
+
+    is_finite = jnp.isfinite(m)
+
+    # case_0
+    is_neginf = jnp.isneginf(m)
+
+    # case_1
+    use_large_negative = jnp.logical_and(is_finite, jnp.logical_not(above_large_negative_range))
+
+    # case_2
+    use_standard = jnp.logical_and(above_large_negative_range, jnp.logical_not(near_1))
+
+    # case_3
+    use_near_1 = jnp.logical_and(near_1, below_1)
+
+    # case 4
+    is_unity = m == 1.0
+
+    # case 5
+    is_more_than_1 = m > 1
+
+    # case_6
+    is_nan = jnp.isnan(m)
+
+    zero_integer = jnp.zeros_like(m, dtype=jnp.int8)
+    which = (zero_integer +
+             1 * use_large_negative +
+             2 * use_standard +
+             3 * use_near_1 +
+             4 * is_unity +
+             5 * jnp.logical_or(is_more_than_1, is_nan))
+
+    ### series for large, negative m
+    # here the -1 is a safe value for the series treatment, which contains log(-m).
+    sanitized_m = jnp.where(jnp.logical_and(is_finite, below_0), m, -1)
+    large_neg_series_eval = _k_series_large_negative_2_terms(sanitized_m)
+
+    ### evaluate using Carlson's Rf
+    sanitized_m2 = jnp.where(jnp.logical_and(is_finite, below_1), m, 0.5)
+    standard_eval = _ellipe(sanitized_m2)
+
+    ### Series near 1
+    near_1_eval = _em1_series_3_terms(1 - sanitized_m2)
+
+
+    ### outputs for special cases:
+    # E(-inf) == inf
+    infs = jnp.full_like(m, jnp.inf)
+    # E(1) == inf
+    ones = jnp.ones_like(m)
+    # E(x > 1) == nan
+    nans = jnp.full_like(m, jnp.nan)
+
+    return jax.lax.select_n(which,
+                            infs,
+                            large_neg_series_eval,
+                            standard_eval,
+                            near_1_eval,
+                            ones,
+                            nans)
