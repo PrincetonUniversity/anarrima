@@ -7,14 +7,13 @@ from functools import partial
 
 sqrt = jnp.sqrt
 
-@jax.custom_jvp
-def rf(x0, y0, z0):
-    return _rf(x0, y0, z0, 8)
-# 
-# @custom_jvp
-# def rf_quick(x0, y0, z0):
-#     return _rf(x0, y0, z0, 3)
+def rf(x, y, z):
+    return _rf(x, y, z, 8)
 
+def rf_quick(x, y, z):
+    return _rf(x, y, z, 3)
+
+@partial(custom_jvp, nondiff_argnums=(3,))
 def _rf(x0, y0, z0, NUM_LOOPS):
 
     v0 = jnp.array([x0, y0, z0])
@@ -45,16 +44,15 @@ def _rf(x0, y0, z0, NUM_LOOPS):
                + e3 / 14
                + e2 * e2 / 24
                - 3 * e2 * e3 / 44
-               + 5 * e2**3 / 208 
+               - 5 * e2**3 / 208 
                + 3 * e3**2 / 104) / sqrt(an)
 
-
 def rd(x0, y0, z0):
+    return _rd(x0, y0, z0, 8)
+
+def _rd(x0, y0, z0, NUM_LOOPS):
     """
     """
-
-    NUM_LOOPS=8
-
     v0 = jnp.array([x0, y0, z0])
     A0 = (x0 + y0 + 3*z0) / 5
     init = A0, v0
@@ -103,10 +101,21 @@ def rd(x0, y0, z0):
 
     return sum_term + series_term
 
-drfdx = lambda x_dot, primal_out, x, y, z: -rd(y, z, x)/6 * x_dot
-drfdy = lambda y_dot, primal_out, x, y, z: -rd(z, x, y)/6 * y_dot
-drfdz = lambda z_dot, primal_out, x, y, z: -rd(x, y, z)/6 * z_dot
-rf.defjvps(drfdx, drfdy, drfdz)
+@_rf.defjvp
+def _rf_jvp(NUM_LOOPS, primals, tangents):
+    x, y, z = primals
+    x_dot, y_dot, z_dot = tangents
+    primals_out = _rf(x, y, z, NUM_LOOPS)
+    tangents_out = (-_rd(y, z, x, NUM_LOOPS)/6 * x_dot
+                    -_rd(z, x, y, NUM_LOOPS)/6 * y_dot
+                    -_rd(x, y, z, NUM_LOOPS)/6 * z_dot)
+    return primals_out, tangents_out
+
+
+# drfdx = lambda x_dot, primal_out, x, y, z: -rd(y, z, x)/6 * x_dot
+# drfdy = lambda y_dot, primal_out, x, y, z: -rd(z, x, y)/6 * y_dot
+# drfdz = lambda z_dot, primal_out, x, y, z: -rd(x, y, z)/6 * z_dot
+# rf.defjvps(drfdx, drfdy, drfdz)
 
 # rf_quick.defjvps(lambda x_dot, primal_out, x, y, z: -rd(y, z, x)/6 * x_dot,
 #                  lambda y_dot, primal_out, x, y, z: -rd(z, x, y)/6 * y_dot,
