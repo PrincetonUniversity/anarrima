@@ -1,4 +1,5 @@
 from anarrima.elliptic.carlson import rf as elliprf
+from anarrima.elliptic.carlson import _rf as _elliprf
 from anarrima.elliptic.carlson import rd as elliprd
 import jax
 import jax.numpy as jnp
@@ -84,44 +85,53 @@ def ellipk(m):
     """Legendre K"""
     above_large_negative_range = m > -1e10
     below_0 = m < 0
+    near_1 = m > 1 - 1e-8
     below_1 = m < 1
 
     is_finite = jnp.isfinite(m)
 
     # case_0
-    is_neginf = jnp.isneginf(m)
+    # is_neginf = jnp.isneginf(m)
 
     # case_1
     use_large_negative = jnp.logical_and(is_finite, jnp.logical_not(above_large_negative_range))
 
     # case_2
-    use_standard = jnp.logical_and(above_large_negative_range, below_1)
+    use_standard = jnp.logical_and(above_large_negative_range, jnp.logical_not(near_1))
 
     # case 3
-    is_unity = m == 1.0
+    use_near_1 = jnp.logical_and(near_1, below_1)
 
     # case 4
+    is_unity = m == 1.0
+
+    # case 5
     is_more_than_1 = m > 1
 
-    # case_5
+    # case_6
     is_nan = jnp.isnan(m)
 
     zero_integer = jnp.zeros_like(m, dtype=jnp.int8)
     which = (zero_integer + 
              1 * use_large_negative +
              2 * use_standard +
-             3 * is_unity +
-             4 * jnp.logical_or(is_more_than_1, is_nan))
+             3 * use_near_1 +
+             4 * is_unity +
+             5 * jnp.logical_or(is_more_than_1, is_nan))
 
     ### evaluate using Carlson's Rf
     # the 0.0 at the end is a safe value for K
     sanitized_m = jnp.where(jnp.logical_and(is_finite, below_1), m, 0.)
     standard_eval = _ellipk(sanitized_m)
 
+    # between 1 - 1e-8 and 1
+    sanitized_m2 = jnp.where(jnp.logical_and(near_1, below_1), m, 0.999)
+    near_1_eval = _km1_series_2_terms(1 - sanitized_m2)
+
     ### series for large, negative m
     # here the -1 is a safe value for the series treatment, which contains log(-m).
-    sanitized_m2 = jnp.where(jnp.logical_and(is_finite, below_0), m, -1.)
-    large_neg_series_eval = _k_series_large_negative_2_terms(sanitized_m2)
+    sanitized_m3 = jnp.where(jnp.logical_and(is_finite, below_0), m, -1.)
+    large_neg_series_eval = _k_series_large_negative_2_terms(sanitized_m3)
 
     ### outputs for special cases:
     # K(-inf) == 0
@@ -135,12 +145,13 @@ def ellipk(m):
                             zero,
                             large_neg_series_eval,
                             standard_eval,
+                            near_1_eval,
                             infty,
                             nans)
 
 # good from -1e10 < m < 1
 def _ellipk(m):
-    return elliprf(0., 1. - m, 1.)
+    return _elliprf(0., 1. - m, 1., n_loops=7)
 
 # good for m < -1e10
 def _k_series_large_negative_2_terms(m):
@@ -151,6 +162,26 @@ def _k_series_large_negative_2_terms(m):
     term_0 = (4 * ln2 + lnw)/(2 * root_w)
     term_1 = (2 - 4 * ln2 - lnw) / (8 * root_w * w)
     return term_0 + term_1
+
+def _km1_series_2_terms(p):
+    # within 1e-15ish for m > 1 - 1e-8, i.e. p < 1e-8
+    # p = 1 - m
+    ln2 = jnp.log(2)
+    lnp = jnp.log(p)
+    term_0 = (4 * ln2 - lnp) / 2
+    term_1 = p * ( 4 * ln2 - lnp - 2) / 8
+    return term_0 + term_1
+
+def _km1_series_4_terms(p):
+    # within 1e-16 for p < 1e-3
+    # p = 1 - m
+    ln2 = jnp.log(2)
+    lnp = jnp.log(p)
+    term_0 = (4 * ln2 - lnp) / 2
+    term_1 = p * ( 4 * ln2 - lnp - 2) / 8
+    term_2 = 3 * p**2 * (12 * ln2 - 3 * lnp - 7) / 128
+    term_3 = 5 * p**3 * (60 * ln2 - 15 * lnp - 37) / 1536
+    return term_0 + (term_1 + (term_2 + term_3))
 
 # m very close to 1
 # this is not used because with the current number of loop

@@ -10,11 +10,8 @@ sqrt = jnp.sqrt
 def rf(x, y, z):
     return _rf(x, y, z, 8)
 
-def rf_quick(x, y, z):
-    return _rf(x, y, z, 3)
-
 @partial(custom_jvp, nondiff_argnums=(3,))
-def _rf(x0, y0, z0, NUM_LOOPS):
+def _rf(x0, y0, z0, n_loops):
 
     v0 = jnp.array([x0, y0, z0])
     A0 = jnp.sum(v0) / 3
@@ -29,10 +26,10 @@ def _rf(x0, y0, z0, NUM_LOOPS):
 
         return (Am_new, vm_new), None
 
-    result, _ = scan(body, init, length=NUM_LOOPS)
+    result, _ = scan(body, init, length=n_loops)
     an, _ = result
 
-    f = 4**(-NUM_LOOPS)
+    f = 4**(-n_loops)
 
     x = (A0 - x0) / an * f
     y = (A0 - y0) / an * f
@@ -40,17 +37,27 @@ def _rf(x0, y0, z0, NUM_LOOPS):
     e2 = x * y - z * z
     e3 = x * y * z
 
-    return ( 1 - e2 / 10
-               + e3 / 14
-               + e2 * e2 / 24
+    return ( 1 - e2 / 10 
+               + e3 / 14 
+               + e2 * e2 / 24 
                - 3 * e2 * e3 / 44
-               - 5 * e2**3 / 208 
+               - 5 * e2**3 / 208
                + 3 * e3**2 / 104) / sqrt(an)
+
+@_rf.defjvp
+def _rf_jvp(n_loops, primals, tangents):
+    x, y, z = primals
+    x_dot, y_dot, z_dot = tangents
+    primals_out = _rf(x, y, z, n_loops)
+    tangents_out = (-_rd(y, z, x, n_loops)/6 * x_dot
+                    -_rd(z, x, y, n_loops)/6 * y_dot
+                    -_rd(x, y, z, n_loops)/6 * z_dot)
+    return primals_out, tangents_out
 
 def rd(x0, y0, z0):
     return _rd(x0, y0, z0, 8)
 
-def _rd(x0, y0, z0, NUM_LOOPS):
+def _rd(x0, y0, z0, n_loops):
     """
     """
     v0 = jnp.array([x0, y0, z0])
@@ -73,9 +80,9 @@ def _rd(x0, y0, z0, NUM_LOOPS):
 
         return (Am_new, vm_new), sum_element
 
-    numerators = jnp.power(4., -jnp.arange(NUM_LOOPS))
+    numerators = jnp.power(4., -jnp.arange(n_loops))
 
-    result, sum_elements = scan(body, init, xs=numerators, length=NUM_LOOPS)
+    result, sum_elements = scan(body, init, xs=numerators, length=n_loops)
     an, _ = result
 
     scale = numerators[-1]/4
@@ -100,16 +107,6 @@ def _rd(x0, y0, z0, NUM_LOOPS):
     sum_term = 3 * jnp.sum(sum_elements)
 
     return sum_term + series_term
-
-@_rf.defjvp
-def _rf_jvp(NUM_LOOPS, primals, tangents):
-    x, y, z = primals
-    x_dot, y_dot, z_dot = tangents
-    primals_out = _rf(x, y, z, NUM_LOOPS)
-    tangents_out = (-_rd(y, z, x, NUM_LOOPS)/6 * x_dot
-                    -_rd(z, x, y, NUM_LOOPS)/6 * y_dot
-                    -_rd(x, y, z, NUM_LOOPS)/6 * z_dot)
-    return primals_out, tangents_out
 
 
 # drfdx = lambda x_dot, primal_out, x, y, z: -rd(y, z, x)/6 * x_dot
