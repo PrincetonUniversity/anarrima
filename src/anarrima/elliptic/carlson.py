@@ -2,12 +2,20 @@ import jax
 jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jax.lax import scan
+from jax import custom_jvp
+from functools import partial
 
 sqrt = jnp.sqrt
 
 @jax.custom_jvp
 def rf(x0, y0, z0):
-    NUM_LOOPS = 8
+    return _rf(x0, y0, z0, 8)
+# 
+# @custom_jvp
+# def rf_quick(x0, y0, z0):
+#     return _rf(x0, y0, z0, 3)
+
+def _rf(x0, y0, z0, NUM_LOOPS):
 
     v0 = jnp.array([x0, y0, z0])
     A0 = jnp.sum(v0) / 3
@@ -95,6 +103,11 @@ def rd(x0, y0, z0):
 
     return sum_term + series_term
 
-rf.defjvps(lambda x_dot, primal_out, x, y, z: -rd(y, z, x)/6 * x_dot,
-           lambda y_dot, primal_out, x, y, z: -rd(z, x, y)/6 * y_dot,
-           lambda z_dot, primal_out, x, y, z: -rd(x, y, z)/6 * z_dot)
+drfdx = lambda x_dot, primal_out, x, y, z: -rd(y, z, x)/6 * x_dot
+drfdy = lambda y_dot, primal_out, x, y, z: -rd(z, x, y)/6 * y_dot
+drfdz = lambda z_dot, primal_out, x, y, z: -rd(x, y, z)/6 * z_dot
+rf.defjvps(drfdx, drfdy, drfdz)
+
+# rf_quick.defjvps(lambda x_dot, primal_out, x, y, z: -rd(y, z, x)/6 * x_dot,
+#                  lambda y_dot, primal_out, x, y, z: -rd(z, x, y)/6 * y_dot,
+#                  lambda z_dot, primal_out, x, y, z: -rd(x, y, z)/6 * z_dot)
