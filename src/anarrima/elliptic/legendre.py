@@ -172,23 +172,8 @@ def _km1_series_2_terms(p):
     term_1 = p * ( 4 * ln2 - lnp - 2) / 8
     return term_0 + term_1
 
-def _km1_series_4_terms(p):
-    # within 1e-16 for p < 1e-3
-    # p = 1 - m
-    ln2 = jnp.log(2)
-    lnp = jnp.log(p)
-    term_0 = (4 * ln2 - lnp) / 2
-    term_1 = p * ( 4 * ln2 - lnp - 2) / 8
-    term_2 = 3 * p**2 * (12 * ln2 - 3 * lnp - 7) / 128
-    term_3 = 5 * p**3 * (60 * ln2 - 15 * lnp - 37) / 1536
-    return term_0 + (term_1 + (term_2 + term_3))
-
 # m very close to 1
-# this is not used because with the current number of loop
-# evaluations in the rf function it is good enough, even down 
-# to 1e-16 ish. So even doing  p = 1.0 - m loses precision enough
-# to not make it worth it.
-def _km1_series_6_terms(p):
+def ellipkm1(p):
     # within 1e-16 for p < 1e-3
     # p = 1 - m
     ln2 = jnp.log(2)
