@@ -170,3 +170,33 @@ def _km1_series_6_terms(p):
     term_5 = 63 * p**5 * (2520 * ln2 - 630 * lnp - 1627) / 1310720
     return term_0 + (term_1 + (term_2 + (term_3 + (term_4 + term_5))))
 
+##############################
+# Treatment of Legendre E(m)
+##############################
+
+def _ellipe(m):
+    rf = elliprf(0., 1. - m, 1.)
+    rd_term = m * elliprd(0., 1. - m, 1.) / 3
+    return rf - rd_term
+
+# Good for 0 < p < 1e-4
+# p = 1 - m
+def _em1_series_3_terms(p):
+    ln2 = jnp.log(2)
+    lnp = jnp.log(p)
+    term_0 = 1
+    term_1 = p * (-1 + 4*ln2 - lnp) / 4
+    term_2 = p**2 * (-13 + 24*ln2 - 6*lnp) / 64
+    term_3 = 3 * p**3 * (-12 + 20*ln2 - 5*lnp) / 256
+    return term_0 + (term_1 + (term_2 + term_3))
+
+# Good for m < -1e5
+def _ellipe_large_negative_m_2_terms(m):
+    w = -m # wumbo
+    ln2 = jnp.log(2)
+    lnw = jnp.log(w)
+    term_0 = w
+    term_1 = (1 + 4 * ln2 + lnw)/(4)
+    term_2 = (3 - 8 * ln2 - 2 * lnw)/(64 * w)
+    return jax.lax.rsqrt(w) * (term_0 + (term_1 + term_2))
+
