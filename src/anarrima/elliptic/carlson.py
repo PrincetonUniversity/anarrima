@@ -7,6 +7,10 @@ from functools import partial
 
 sqrt = jnp.sqrt
 
+# There are analytic forms for
+# x, x, z or x, y, y but those cannot happen
+# in the anarrima geometry; thus we only
+# require the general case
 def rf(x, y, z):
     return _rf(x, y, z, 8)
 
@@ -109,6 +113,7 @@ def _rd(x0, y0, z0, n_loops):
 
     return sum_term + series_term
 
+# Does this jvp ever add accuracy or speed up evaluation?
 @_rd.defjvp
 def _rd_jvp(n_loops, primals, tangents):
     x, y, z = primals
