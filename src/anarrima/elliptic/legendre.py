@@ -22,7 +22,7 @@ def ellipfinc(φ, m):
     m_is_neginf = jnp.isneginf(m)
 
     # special case: F(0, m) = 0, even for infinite m
-    # special case: output is zero, for any φ
+    # special case: F(φ, -∞) = 0, for any non-nan φ
     output_is_zero = (phi_is_zero | m_is_neginf) & both_notnan
 
     φ_sanitized = jnp.where(phi_finite, φ, 0.)
@@ -47,16 +47,9 @@ def ellipfinc(φ, m):
              1 * use_standard_case +
              2 * output_is_nan)
 
-    print(f"Choice is {which}")
-    print(f"Should output be zero? {output_is_zero}")
-    print(f"Should use standard case? {use_standard_case}")
-    print(f"Should output by nan? {output_is_nan}")
-
     ### outputs for special cases
     # zeros at m = -∞
     zeros = jnp.zeros_like(φ)
-    # should I make a new copy of φ rather than returning the same one?
-    # probably...
     nans = jnp.full_like(m, jnp.nan)
 
     return jax.lax.select_n(which,
