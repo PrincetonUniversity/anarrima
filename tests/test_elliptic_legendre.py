@@ -2,9 +2,12 @@ import anarrima.elliptic.legendre as legendre
 import pytest
 from pytest import approx
 import jax.numpy as jnp
+from jax import grad
 
 INF = jnp.inf
+isnan = jnp.isnan
 isneginf = jnp.isneginf
+nan = jnp.nan
 
 einc = legendre.ellipeinc
 finc = legendre.ellipfinc
@@ -19,6 +22,11 @@ def test_fused_form_equality():
     f2, e2 = legendre.ellip_finc_einc_fused(φ0, m0)
     assert f1 == f2
     assert e1 == e2
+
+def test_ellipf_antisymmetry():
+    f1 = finc(φ0, m0)
+    f2 = finc(-φ0, m0)
+    assert f1 == -f2
 
 # φ = 0, m < 0
 def test_ellipf_phi_zero():
@@ -49,4 +57,29 @@ def test_ellipf_m_zero():
 def test_ellipe_m_zero():
     e1 = einc(φ0, 0.)
     assert e1 == φ0
+
+# φ is NaN, m < 0
+def test_ellipf_phi_nan():
+    f1 = finc(nan, m0)
+    assert isnan(f1)
+
+@pytest.mark.skip(reason="Not testing E")
+def test_ellipe_phi_nan():
+    e1 = einc(nan, m0)
+    assert isnan(e1)
+
+# φ, m is NaN
+def test_ellipf_m_nan():
+    f1 = finc(φ0, nan)
+    assert isnan(f1)
+
+@pytest.mark.skip(reason="Not testing E")
+def test_ellipe_m_nan():
+    e1 = einc(φ0, nan)
+    assert isnan(e1)
+
+# gradients of ellipf
+def test_gradellipf_phi_at_zero():
+    g_f1 = grad(finc)(0., 0.1)
+    assert g_f1 == 1.0
 

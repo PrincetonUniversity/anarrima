@@ -13,57 +13,42 @@ def ellipfinc(φ, m):
     """Incomplete elliptic integral of the first kind """
     φ, m = jnp.broadcast_arrays(φ, m)
 
-    phi_is_zero = φ == 0.
-    finite_phi = jnp.isfinite(φ)
-    phi_isnan = jnp.isnan(φ)
-    phi_notnan = jnp.logical_not(phi_isnan)
-
+    # elementary tests of each variable
+    phi_is_zero, m_is_zero = φ == 0., m == 0.
+    phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2) & (~phi_is_zero)
+    either_input_is_nan = jnp.isnan(φ) | jnp.isnan(m)
+    both_notnan = ~either_input_is_nan
+    phi_finite, m_finite = jnp.isfinite(φ), jnp.isfinite(m)
+    m_is_neginf = jnp.isneginf(m)
 
     # special case: F(0, m) = 0, even for infinite m
     # special case: output is zero, for any φ
-    m_is_neginf = jnp.isneginf(m)
-    m_isnan = jnp.isnan(m)
-    m_notnan = jnp.logical_not(m_isnan)
-    output_is_zero = jnp.logical_or(jnp.logical_and(phi_is_zero, m_notnan),
-                                    jnp.logical_and(phi_notnan, m_is_neginf))
+    output_is_zero = (phi_is_zero | m_is_neginf) & both_notnan
 
-    # special case: output is φ
-    m_is_zero = m == 0
-    output_is_phi = jnp.logical_and(finite_phi, m_is_zero)
-
-    either_input_is_nan = jnp.logical_or(phi_isnan, m_isnan)
-
-    # fix in the morning: 0 * jnp.inf is nan so F(
-
-    sinφ = sin(φ)
+    φ_sanitized = jnp.where(phi_finite, φ, 0.)
+    m_sanitized = jnp.where((phi_is_zero & m_is_neginf) | either_input_is_nan, 0., m)
+    sinφ = jnp.sin(φ_sanitized)
     sin_sq_φ = jnp.square(sinφ)
     x = 1. - sin_sq_φ
-    y = 1. - m * sin_sq_φ
+    y = 1 - m_sanitized * sin_sq_φ
     z = 1.
 
     # out of bounds, return nan
-    print(f"y is {y}")
-    m_is_safe = y > 0.
-    output_is_nan = jnp.logical_or(either_input_is_nan, jnp.logical_not(m_is_safe))
+    m_is_safe = y >= 0.
+    output_is_nan = either_input_is_nan | (~m_is_safe)
 
     # use standard case
-    nonzero_phi = jnp.logical_and(jnp.logical_not(phi_is_zero), finite_phi)
-    use_standard_case = jnp.logical_and(nonzero_phi,
-                                        jnp.logical_and(jnp.logical_not(m_is_neginf),
-                                                        m_is_safe))
-    sanitized_y = jnp.where(m_is_safe, y, 0.5)
-    standard_eval = sinφ * elliprf(x, sanitized_y, z)
+    both_in_standard_conditions = (m_finite & phi_in_standard_range) & both_notnan
+    use_standard_case = both_in_standard_conditions & m_is_safe
 
+    standard_eval = sinφ * elliprf(x, y, z)
 
-    zero_integer = jnp.zeros_like(φ, dtype=jnp.int8)
-    which = (zero_integer * output_is_zero +
-             1 * output_is_phi +
-             2 * use_standard_case +
-             3 * output_is_nan)
+    which = (0 * output_is_zero +
+             1 * use_standard_case +
+             2 * output_is_nan)
 
-    print(which)
+    print(f"Choice is {which}")
     print(f"Should output be zero? {output_is_zero}")
-    print(f"Should use φ? {output_is_phi}")
     print(f"Should use standard case? {use_standard_case}")
     print(f"Should output by nan? {output_is_nan}")
 
@@ -76,7 +61,6 @@ def ellipfinc(φ, m):
 
     return jax.lax.select_n(which,
                             zeros,
-                            φ,
                             standard_eval,
                             nans)
 
