@@ -9,6 +9,78 @@ sin = jnp.sin
 cos = jnp.cos
 
 @jax.custom_jvp
+def _ellipfinc(φ, m):
+    """
+    Defined for φ in [-π/2, π/2] and real m s.t. y>=0.
+    """
+    sinφ = jnp.sin(φ)
+    sin_sq_φ = jnp.square(sinφ)
+    x = 1. - sin_sq_φ
+    y = 1 - m * sin_sq_φ
+    z = 1.
+    return sinφ * elliprf(x, y, z)
+
+@_ellipfinc.defjvp
+def _ellipfinc_jvp(primals, tangents):
+    φ, m = primals
+    φ_dot, m_dot = tangents
+
+    d_ellipf_dφ = 1/sqrt(1 - m*sin(φ)**2)
+
+    sinφ = sin(φ)
+    sin_sq_φ = jnp.square(sinφ)
+    sin_cu_φ = sinφ * sin_sq_φ
+    x = 1. - sin_sq_φ
+    y = 1. - m * sin_sq_φ
+    z = 1.
+
+    primal_out = sinφ * elliprf(x, y, z)
+    # compute dF/dm
+    # note the specific argument order!
+    d_ellipf_dm = sin_cu_φ * elliprd(z, x, y) / 6
+
+    tangent_out = d_ellipf_dφ * φ_dot + d_ellipf_dm * m_dot
+    return primal_out, tangent_out
+
+@jax.custom_jvp
+def _ellipeinc(φ, m):
+    """
+    Defined for φ in [-π/2, π/2] and real m s.t. y>=0.
+    """
+    sinφ = sin(φ)
+    sin_sq_φ = jnp.square(sinφ)
+    sin_cu_φ = sin_sq_φ * sinφ
+    x = 1. - sin_sq_φ
+    y = 1. - m * sin_sq_φ
+    z = 1.
+    rf = elliprf(x, y, z)
+    rd = elliprd(x, y, z)
+    return sinφ * rf - m * sin_cu_φ * rd / 3
+
+@_ellipeinc.defjvp
+def _ellipeinc_jvp(primals, tangents):
+    # doesn't work if:
+    # sin[φ] == 0 || (m sin[φ] == 0 && m sin[φ] != sin[φ]
+    φ, m = primals
+    φ_dot, m_dot = tangents
+
+    d_ellipe_dφ = sqrt(1 - m*sin(φ)**2)
+
+    sinφ = sin(φ)
+    sin_sq_φ = jnp.square(sinφ)
+    sin_cu_φ = sin_sq_φ * sinφ
+    x = 1. - sin_sq_φ
+    y = 1. - m * sin_sq_φ
+    z = 1.
+    rf = elliprf(x, y, z)
+    rd = elliprd(x, y, z)
+
+    d_ellipe_dm = sin_cu_φ * rd
+    primal_out = sinφ * rf - m * sin_cu_φ * rd / 3
+    tangent_out = d_ellipe_dφ * φ_dot + d_ellipe_dm * m_dot
+    return primal_out, tangent_out
+
+@jax.custom_jvp
 def ellipfinc(φ, m):
     """Incomplete elliptic integral of the first kind
 
@@ -26,10 +98,7 @@ def ellipfinc(φ, m):
     φ_sanitized = jnp.where(phi_finite, φ, 0.)
     m_sanitized = jnp.where((phi_is_zero & m_is_neginf) | either_is_nan, 0., m)
     sinφ = jnp.sin(φ_sanitized)
-    sin_sq_φ = jnp.square(sinφ)
-    x = 1. - sin_sq_φ
-    y = 1 - m_sanitized * sin_sq_φ
-    z = 1.
+    y = 1 - m_sanitized * jnp.square(sinφ)
 
     # out of bounds, return nan
     m_is_safe = y >= 0.
@@ -38,7 +107,7 @@ def ellipfinc(φ, m):
     # use standard case
     use_standard_case = m_finite & phi_in_standard_range & m_is_safe
 
-    standard_eval = sinφ * elliprf(x, y, z)
+    standard_eval = _ellipfinc(φ_sanitized, m_sanitized)
 
     ### outputs for special cases
     zeros = jnp.zeros_like(φ)
@@ -60,12 +129,7 @@ def ellipeinc(φ, m):
     phi_finite, m_finite = jnp.isfinite(φ), jnp.isfinite(m)
     either_is_nan = jnp.isnan(φ) | jnp.isnan(m)
 
-    sinφ = sin(φ)
-    sin_sq_φ = jnp.square(sinφ)
-    sin_cu_φ = sin_sq_φ * sinφ
-    x = 1. - sin_sq_φ
-    y = 1. - m * sin_sq_φ
-    z = 1.
+    y = 1. - m * jnp.square(sin(φ))
 
     m_is_safe = y >= 0.
     output_is_nan = either_is_nan | (~m_is_safe & ~m_is_neginf)
@@ -73,7 +137,7 @@ def ellipeinc(φ, m):
 
     use_standard_case = m_finite & phi_in_standard_range & m_is_safe
 
-    standard_eval = sinφ * elliprf(x, y, z) - m * sin_cu_φ * elliprd(x, y, z) / 3
+    standard_eval = _ellipeinc(φ, m)
     zeros = jnp.zeros_like(φ)
     result = jnp.where(use_standard_case, standard_eval, zeros)
     result = jnp.where(output_is_inf, jnp.inf, result)
@@ -99,18 +163,18 @@ def ellipfinc_jvp(primals, tangents):
     φ, m = primals
     φ_dot, m_dot = tangents
 
-    finc, einc = ellip_finc_einc_fused(φ, m)
-
-    primal_out = finc
-
     d_ellipf_dφ = 1/sqrt(1 - m*sin(φ)**2)
 
-    # compute dF/dm
-    d_L = sin(2 * φ) / (4 * (m-1) * sqrt(1-m*sin(φ)**2))
-    d_F = -finc/(2 * m)
-    d_E = -einc/(2 * (m-1) * m)
-    d_ellipf_dm = d_L + d_F + d_E
+    sinφ = sin(φ)
+    sin_sq_φ = jnp.square(sinφ)
+    sin_cu_φ = sin_sq_φ * sinφ
+    x = 1. - sin_sq_φ
+    y = 1. - m * sin_sq_φ
+    z = 1.
 
+    # compute dF/dm
+    d_ellipf_dm = sin_cu_φ * elliprd(x, y, z) / 6
+    primal_out = sinφ * elliprf(x, y, z)
     tangent_out = d_ellipf_dφ * φ_dot + d_ellipf_dm * m_dot
     return primal_out, tangent_out
 
