@@ -10,12 +10,15 @@ cos = jnp.cos
 
 @jax.custom_jvp
 def ellipfinc(φ, m):
-    """Incomplete elliptic integral of the first kind """
+    """Incomplete elliptic integral of the first kind
+
+    Defined for φ in [-π/2, π/2] and real m.
+    """
     φ, m = jnp.broadcast_arrays(φ, m)
 
     # elementary tests of each variable
     phi_is_zero = φ == 0.
-    phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2) & (~phi_is_zero)
+    phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2) & ~phi_is_zero
     either_is_nan = jnp.isnan(φ) | jnp.isnan(m)
     phi_finite, m_finite = jnp.isfinite(φ), jnp.isfinite(m)
     m_is_neginf = jnp.isneginf(m)
@@ -30,13 +33,10 @@ def ellipfinc(φ, m):
 
     # out of bounds, return nan
     m_is_safe = y >= 0.
-    output_is_nan = either_is_nan | (~m_is_safe)
+    output_is_nan = either_is_nan | ~m_is_safe
 
     # use standard case
-    use_standard_case = (m_finite &
-                         phi_in_standard_range &
-                         (~either_is_nan) &
-                         m_is_safe)
+    use_standard_case = m_finite & phi_in_standard_range & m_is_safe
 
     standard_eval = sinφ * elliprf(x, y, z)
 
@@ -49,14 +49,36 @@ def ellipfinc(φ, m):
 
 @jax.custom_jvp
 def ellipeinc(φ, m):
-    """Incomplete elliptic integral of the second kind """
+    """Incomplete elliptic integral of the second kind.
+    Defined for φ in [-π/2, π/2] and real m.
+    """
+    φ, m = jnp.broadcast_arrays(φ, m)
+
+    phi_is_zero = φ == 0.
+    phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2) & ~phi_is_zero
+    m_is_neginf = jnp.isneginf(m)
+    phi_finite, m_finite = jnp.isfinite(φ), jnp.isfinite(m)
+    either_is_nan = jnp.isnan(φ) | jnp.isnan(m)
+
     sinφ = sin(φ)
     sin_sq_φ = jnp.square(sinφ)
     sin_cu_φ = sin_sq_φ * sinφ
     x = 1. - sin_sq_φ
     y = 1. - m * sin_sq_φ
     z = 1.
-    return sinφ * elliprf(x, y, z) - m * sin_cu_φ * elliprd(x, y, z) / 3
+
+    m_is_safe = y >= 0.
+    output_is_nan = either_is_nan | (~m_is_safe & ~m_is_neginf)
+    output_is_inf = phi_finite & m_is_neginf
+
+    use_standard_case = m_finite & phi_in_standard_range & m_is_safe
+
+    standard_eval = sinφ * elliprf(x, y, z) - m * sin_cu_φ * elliprd(x, y, z) / 3
+    zeros = jnp.zeros_like(φ)
+    result = jnp.where(use_standard_case, standard_eval, zeros)
+    result = jnp.where(output_is_inf, jnp.inf, result)
+    result = jnp.where(output_is_nan, jnp.nan, result)
+    return result
 
 def ellip_finc_einc_fused(φ, m):
     sinφ = sin(φ)

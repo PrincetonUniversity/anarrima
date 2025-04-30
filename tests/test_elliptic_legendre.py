@@ -6,6 +6,7 @@ from jax import grad
 
 INF = jnp.inf
 isnan = jnp.isnan
+isinf = jnp.isinf
 isneginf = jnp.isneginf
 nan = jnp.nan
 
@@ -60,29 +61,36 @@ def test_gradellipf_phi_at_zero():
     assert g_f1 == 1.0
 
 ### Test ellipeinc
-@pytest.mark.skip(reason="Not testing E")
 def test_ellipe_phi_zero():
     e1 = einc(0., m0)
     assert e1 == 0.
 
-@pytest.mark.skip(reason="Not testing E")
+def test_ellipe_m_posinf():
+    e1 = einc(φ0, INF)
+    assert isnan(e1)
+
 def test_ellipe_m_neginf():
     e1 = einc(φ0, -INF)
-    assert isneginf(e1)
+    assert isinf(e1)
 
-@pytest.mark.skip(reason="Not testing E")
+def test_ellipe_phi_zero_m_neginf():
+    e1 = einc(0., -INF)
+    assert isinf(e1)
+
 def test_ellipe_m_zero():
     e1 = einc(φ0, 0.)
     assert e1 == φ0
 
-@pytest.mark.skip(reason="Not testing E")
 def test_ellipe_phi_nan():
     e1 = einc(nan, m0)
     assert isnan(e1)
 
-@pytest.mark.skip(reason="Not testing E")
 def test_ellipe_m_nan():
     e1 = einc(φ0, nan)
+    assert isnan(e1)
+
+def test_ellipe_phi_nan_m_nan():
+    e1 = einc(nan, nan)
     assert isnan(e1)
 
 def test_fused_form_equality():
