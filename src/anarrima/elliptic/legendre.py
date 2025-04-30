@@ -167,27 +167,39 @@ def ellipfinc_jvp(primals, tangents):
 
     sinφ = sin(φ)
     sin_sq_φ = jnp.square(sinφ)
-    sin_cu_φ = sin_sq_φ * sinφ
+    sin_cu_φ = sinφ * sin_sq_φ
     x = 1. - sin_sq_φ
     y = 1. - m * sin_sq_φ
     z = 1.
 
-    # compute dF/dm
-    d_ellipf_dm = sin_cu_φ * elliprd(x, y, z) / 6
     primal_out = sinφ * elliprf(x, y, z)
+    # compute dF/dm
+    # note the specific argument order!
+    d_ellipf_dm = sin_cu_φ * elliprd(z, x, y) / 6
+
     tangent_out = d_ellipf_dφ * φ_dot + d_ellipf_dm * m_dot
     return primal_out, tangent_out
 
 @ellipeinc.defjvp
 def ellipeinc_jvp(primals, tangents):
+    # doesn't work if:
+    # sin[φ] == 0 || (m sin[φ] == 0 && m sin[φ] != sin[φ]
     φ, m = primals
     φ_dot, m_dot = tangents
-    finc, einc = ellip_finc_einc_fused(φ, m)
-    primal_out = einc
 
     d_ellipe_dφ = sqrt(1 - m*sin(φ)**2)
-    d_ellipe_dm = (einc - finc)/(2*m)
 
+    sinφ = sin(φ)
+    sin_sq_φ = jnp.square(sinφ)
+    sin_cu_φ = sin_sq_φ * sinφ
+    x = 1. - sin_sq_φ
+    y = 1. - m * sin_sq_φ
+    z = 1.
+    rf = elliprf(x, y, z)
+    rd = elliprd(x, y, z)
+
+    d_ellipe_dm = sin_cu_φ * rd
+    primal_out = sinφ * rf - m * sin_cu_φ * rd / 3
     tangent_out = d_ellipe_dφ * φ_dot + d_ellipe_dm * m_dot
     return primal_out, tangent_out
 
