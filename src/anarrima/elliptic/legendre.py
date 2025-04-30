@@ -14,19 +14,14 @@ def ellipfinc(φ, m):
     φ, m = jnp.broadcast_arrays(φ, m)
 
     # elementary tests of each variable
-    phi_is_zero, m_is_zero = φ == 0., m == 0.
+    phi_is_zero = φ == 0.
     phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2) & (~phi_is_zero)
-    either_input_is_nan = jnp.isnan(φ) | jnp.isnan(m)
-    both_notnan = ~either_input_is_nan
+    either_is_nan = jnp.isnan(φ) | jnp.isnan(m)
     phi_finite, m_finite = jnp.isfinite(φ), jnp.isfinite(m)
     m_is_neginf = jnp.isneginf(m)
 
-    # special case: F(0, m) = 0, even for infinite m
-    # special case: F(φ, -∞) = 0, for any non-nan φ
-    output_is_zero = (phi_is_zero | m_is_neginf) & both_notnan
-
     φ_sanitized = jnp.where(phi_finite, φ, 0.)
-    m_sanitized = jnp.where((phi_is_zero & m_is_neginf) | either_input_is_nan, 0., m)
+    m_sanitized = jnp.where((phi_is_zero & m_is_neginf) | either_is_nan, 0., m)
     sinφ = jnp.sin(φ_sanitized)
     sin_sq_φ = jnp.square(sinφ)
     x = 1. - sin_sq_φ
@@ -35,27 +30,22 @@ def ellipfinc(φ, m):
 
     # out of bounds, return nan
     m_is_safe = y >= 0.
-    output_is_nan = either_input_is_nan | (~m_is_safe)
+    output_is_nan = either_is_nan | (~m_is_safe)
 
     # use standard case
-    both_in_standard_conditions = (m_finite & phi_in_standard_range) & both_notnan
-    use_standard_case = both_in_standard_conditions & m_is_safe
+    use_standard_case = (m_finite &
+                         phi_in_standard_range &
+                         (~either_is_nan) &
+                         m_is_safe)
 
     standard_eval = sinφ * elliprf(x, y, z)
 
-    which = (0 * output_is_zero +
-             1 * use_standard_case +
-             2 * output_is_nan)
-
     ### outputs for special cases
-    # zeros at m = -∞
     zeros = jnp.zeros_like(φ)
-    nans = jnp.full_like(m, jnp.nan)
+    result = jnp.where(use_standard_case, standard_eval, zeros)
+    result = jnp.where(output_is_nan, jnp.nan, result)
 
-    return jax.lax.select_n(which,
-                            zeros,
-                            standard_eval,
-                            nans)
+    return result
 
 @jax.custom_jvp
 def ellipeinc(φ, m):
@@ -68,7 +58,6 @@ def ellipeinc(φ, m):
     z = 1.
     return sinφ * elliprf(x, y, z) - m * sin_cu_φ * elliprd(x, y, z) / 3
 
-@jax.jit
 def ellip_finc_einc_fused(φ, m):
     sinφ = sin(φ)
     sin_sq_φ = jnp.square(sinφ)
