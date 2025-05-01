@@ -39,15 +39,13 @@ def ellipfinc(φ, m):
 
     Defined for φ in [-π/2, π/2] and real m.
     """
-    φ, m = jnp.broadcast_arrays(φ, m)
-
     # elementary tests of each variable
     phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2)
     either_is_nan = jnp.isnan(φ) | jnp.isnan(m)
     m_finite = jnp.isfinite(m)
     m_is_neginf = jnp.isneginf(m)
 
-    m_sanitized = jnp.where(m_is_neginf | either_is_nan, 0., m)
+    m_sanitized = jnp.where(m_is_neginf, 0., m)
     sinφ = jnp.sin(φ)
     y = 1 - m_sanitized * jnp.square(sinφ)
 
