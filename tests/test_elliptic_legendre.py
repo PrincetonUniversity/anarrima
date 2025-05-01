@@ -75,7 +75,7 @@ def high_precison_dfdm(φ, m):
     sinφ = mp.sin(φ)
     sin_sq_φ = sinφ * sinφ
     sin_cu_φ = sinφ * sin_sq_φ
-    x = 1 - sin_sq_φ
+    x = mp.cos(φ)**2
     y = 1 - m * sin_sq_φ
     z = 1
 
@@ -84,22 +84,29 @@ def high_precison_dfdm(φ, m):
     d_ellipf_dm = sin_cu_φ * mp.elliprd(z, x, y) / 6
     return d_ellipf_dm
 
-def test_gradellipf_typical():
+def test_gradellipf_dphi_typical():
     g_f1 = float(grad(finc, argnums=1)(φ0, m0))
     g_hp = high_precison_dfdm(φ0, m0)
     assert almosteq(g_f1, g_hp, rel_eps=1e-17)
 
-def test_gradellipf_near_large_phi():
+def test_gradellipf_dphi_near_large_phi():
     φ = jnp.pi/2 - 1e-4
     m = -1.
     g_f1 = float(grad(finc, argnums=1)(φ, m))
     g_hp = high_precison_dfdm(φ, m)
     assert almosteq(g_f1, g_hp, rel_eps=4e-17)
 
-@pytest.mark.skip(reason="gradient jvp not yet defined for this special case")
-def test_gradellipf_phi_at_zero():
+def test_gradellipf_dphi_phi_at_zero():
     g_f1 = grad(finc)(0., 0.1)
     assert g_f1 == 1.0
+
+def test_gradellipf_dphi_m_neginf():
+    g_f1 = grad(finc)(1., -INF)
+    assert g_f1 == 0.0
+
+def test_gradellipf_dphi_phi_zero_m_neginf():
+    g_f1 = grad(finc)(0., -INF)
+    assert g_f1 == 0.0
 
 ### Test ellipeinc
 def test_ellipe_phi_zero():

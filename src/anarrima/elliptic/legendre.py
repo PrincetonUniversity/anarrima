@@ -15,7 +15,6 @@ def _xyz_incomplete(φ, m):
     z = 1.
     return x, y, z
 
-# @jax.custom_jvp
 def _ellipfinc(φ, m):
     """
     Defined for φ in [-π/2, π/2] and real m s.t. y>=0.
@@ -43,15 +42,13 @@ def ellipfinc(φ, m):
     φ, m = jnp.broadcast_arrays(φ, m)
 
     # elementary tests of each variable
-    phi_is_zero = φ == 0.
-    phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2) & ~phi_is_zero
+    phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2)
     either_is_nan = jnp.isnan(φ) | jnp.isnan(m)
     phi_finite, m_finite = jnp.isfinite(φ), jnp.isfinite(m)
     m_is_neginf = jnp.isneginf(m)
 
-    φ_sanitized = jnp.where(phi_finite, φ, 0.)
-    m_sanitized = jnp.where((phi_is_zero & m_is_neginf) | either_is_nan, 0., m)
-    sinφ = jnp.sin(φ_sanitized)
+    m_sanitized = jnp.where(m_is_neginf | either_is_nan, 0., m)
+    sinφ = jnp.sin(φ)
     y = 1 - m_sanitized * jnp.square(sinφ)
 
     # out of bounds, return nan
@@ -61,7 +58,7 @@ def ellipfinc(φ, m):
     # use standard case
     use_standard_case = m_finite & phi_in_standard_range & m_is_safe
 
-    standard_eval = _ellipfinc(φ_sanitized, m_sanitized)
+    standard_eval = _ellipfinc(φ, m_sanitized)
 
     ### outputs for special cases
     zeros = jnp.zeros_like(φ)
