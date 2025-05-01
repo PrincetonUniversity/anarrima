@@ -24,27 +24,6 @@ def _ellipfinc(φ, m):
     x, y, z = _xyz_incomplete(φ, m)
     return sinφ * elliprf(x, y, z)
 
-# Doesn't make things more accurate or faster
-# Since rf, rd already has a custom jvp
-# @_ellipfinc.defjvp
-# def _ellipfinc_jvp(primals, tangents):
-#     φ, m = primals
-#     φ_dot, m_dot = tangents
-# 
-#     d_ellipf_dφ = 1/sqrt(1 - m*sin(φ)**2)
-# 
-#     sinφ = sin(φ)
-#     sin_cu_φ = sinφ**3
-#     x, y, z = _xyz_incomplete(φ, m)
-# 
-#     primal_out = sinφ * elliprf(x, y, z)
-#     # compute dF/dm
-#     # note the specific argument order!
-#     d_ellipf_dm = sin_cu_φ * elliprd(z, x, y) / 6
-# 
-#     tangent_out = d_ellipf_dφ * φ_dot + d_ellipf_dm * m_dot
-#     return primal_out, tangent_out
-
 def _ellipeinc(φ, m):
     """
     Defined for φ in [-π/2, π/2] and real m s.t. y>=0.
@@ -57,30 +36,6 @@ def _ellipeinc(φ, m):
     rd = elliprd(x, y, z)
     return sinφ * rf - m * sin_cu_φ * rd / 3
 
-# Doesn't make things more accurate or faster
-# Since rf, rd already has a custom jvp
-# @_ellipeinc.defjvp
-# def _ellipeinc_jvp(primals, tangents):
-#     # doesn't work if:
-#     # sin[φ] == 0 || (m sin[φ] == 0 && m sin[φ] != sin[φ]
-#     φ, m = primals
-#     φ_dot, m_dot = tangents
-# 
-#     d_ellipe_dφ = sqrt(1 - m*sin(φ)**2)
-# 
-#     sinφ = sin(φ)
-#     sin_cu_φ = sinφ**3
-#     # x = 1. - sin_sq_φ
-#     x, y, z = _xyz_incomplete(φ, m)
-#     rf = elliprf(x, y, z)
-#     rd = elliprd(x, y, z)
-# 
-#     d_ellipe_dm = - sin_cu_φ * rd / 6
-#     primal_out = sinφ * rf - m * sin_cu_φ * rd / 3
-#     tangent_out = d_ellipe_dφ * φ_dot + d_ellipe_dm * m_dot
-#     return primal_out, tangent_out
-
-# @jax.custom_jvp
 def ellipfinc(φ, m):
     """Incomplete elliptic integral of the first kind
 
@@ -116,7 +71,6 @@ def ellipfinc(φ, m):
 
     return result
 
-@jax.custom_jvp
 def ellipeinc(φ, m):
     """Incomplete elliptic integral of the second kind.
     Defined for φ in [-π/2, π/2] and real m.
@@ -154,50 +108,6 @@ def ellip_finc_einc_fused(φ, m):
     finc = sinφ * elliprf(x, y, z)
     einc = finc - m * sin_cu_φ * elliprd(x, y, z) / 3
     return finc, einc
-
-# This will fail to evaluate if m==0 or m==1.
-# However, since m = -4 p r / ((p-r)² + z²) in the Anarrima package geometry,
-# it is strictly negative for physically meaningful values of m
-# @ellipfinc.defjvp
-def ellipfinc_jvp(primals, tangents):
-    φ, m = primals
-    φ_dot, m_dot = tangents
-
-    d_ellipf_dφ = 1/sqrt(1 - m*sin(φ)**2)
-
-    sinφ = sin(φ)
-    sin_sq_φ = jnp.square(sinφ)
-    sin_cu_φ = sinφ * sin_sq_φ
-    x, y, z = _xyz_incomplete(φ, m)
-
-    primal_out = sinφ * elliprf(x, y, z)
-    # compute dF/dm
-    # note the specific argument order!
-    d_ellipf_dm = sin_cu_φ * elliprd(z, x, y) / 6
-
-    tangent_out = d_ellipf_dφ * φ_dot + d_ellipf_dm * m_dot
-    return primal_out, tangent_out
-
-@ellipeinc.defjvp
-def ellipeinc_jvp(primals, tangents):
-    # doesn't work if:
-    # sin[φ] == 0 || (m sin[φ] == 0 && m sin[φ] != sin[φ]
-    φ, m = primals
-    φ_dot, m_dot = tangents
-
-    d_ellipe_dφ = sqrt(1 - m*sin(φ)**2)
-
-    sinφ = sin(φ)
-    sin_sq_φ = jnp.square(sinφ)
-    sin_cu_φ = sin_sq_φ * sinφ
-    x, y, z = _xyz_incomplete(φ, m)
-    rf = elliprf(x, y, z)
-    rd = elliprd(x, y, z)
-
-    d_ellipe_dm = -sin_cu_φ * rd / 6
-    primal_out = sinφ * rf - m * sin_cu_φ * rd / 3
-    tangent_out = d_ellipe_dφ * φ_dot + d_ellipe_dm * m_dot
-    return primal_out, tangent_out
 
 ##############################
 # Treatment of Legendre K(m)
