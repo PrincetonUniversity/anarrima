@@ -29,8 +29,7 @@ def _ellipeinc(φ, m):
     Defined for φ in [-π/2, π/2] and real m s.t. y>=0.
     """
     sinφ = sin(φ)
-    sin_sq_φ = jnp.square(sinφ)
-    sin_cu_φ = sin_sq_φ * sinφ
+    sin_cu_φ = sinφ * jnp.square(sinφ)
     x, y, z = _xyz_incomplete(φ, m)
     rf = elliprf(x, y, z)
     rd = elliprd(x, y, z)
@@ -100,11 +99,8 @@ def ellipeinc(φ, m):
 
 def ellip_finc_einc_fused(φ, m):
     sinφ = sin(φ)
-    sin_sq_φ = jnp.square(sinφ)
-    sin_cu_φ = sin_sq_φ * sinφ
-    x = 1. - sin_sq_φ
-    y = 1. - m * sin_sq_φ
-    z = 1.
+    sin_cu_φ = sinφ * jnp.square(sinφ)
+    x, y, z = _xyz_incomplete(φ, m)
     finc = sinφ * elliprf(x, y, z)
     einc = finc - m * sin_cu_φ * elliprd(x, y, z) / 3
     return finc, einc
