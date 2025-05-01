@@ -44,7 +44,7 @@ def ellipfinc(φ, m):
     # elementary tests of each variable
     phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2)
     either_is_nan = jnp.isnan(φ) | jnp.isnan(m)
-    phi_finite, m_finite = jnp.isfinite(φ), jnp.isfinite(m)
+    m_finite = jnp.isfinite(m)
     m_is_neginf = jnp.isneginf(m)
 
     m_sanitized = jnp.where(m_is_neginf | either_is_nan, 0., m)
