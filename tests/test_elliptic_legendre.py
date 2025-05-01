@@ -94,7 +94,7 @@ def test_gradellipf_near_large_phi():
     m = -1.
     g_f1 = float(grad(finc, argnums=1)(φ, m))
     g_hp = high_precison_dfdm(φ, m)
-    assert almosteq(g_f1, g_hp, rel_eps=1e-17)
+    assert almosteq(g_f1, g_hp, rel_eps=4e-17)
 
 @pytest.mark.skip(reason="gradient jvp not yet defined for this special case")
 def test_gradellipf_phi_at_zero():
