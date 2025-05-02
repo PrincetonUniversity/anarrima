@@ -61,13 +61,13 @@ test_cases_f = [
     (*pD, float(mp.ellipk(-1))),
     # spike (or fin, at φ > π/2) up to ∞
     # result depends on precision, in mpmath
-    pytest.param(*pE, None, marks=mark.skip(reason="At pole")),
+    pytest.param(*pE, None, marks=mark.skip("At pole")),
     (*pF, NAN),
     # slightly-off sin(φ) & catastrophic subtraction make
     # y wrong by 1e-16 and the result is off by 1e-8
-    pytest.param(*pG, None, marks=mark.skip(reason="Loss of precision here")),
+    pytest.param(*pG, None, marks=mark.skip("Loss of precision here")),
     # Mathematica returns 0
-    pytest.param(*pH, None, marks=mark.skip(reason="0 or Indeterminate")),
+    pytest.param(*pH, None, marks=mark.skip("0 or Indeterminate")),
     (*pI, 0.0),
     (*pJ, 0.0),
     (*pK, float(mp.ellipf(*pK))),
@@ -103,9 +103,9 @@ test_cases_dfdφ = [
     (*pD, 1/jnp.sqrt(2)),
     # spike (or fin, at φ > π/2) up to ∞
     # result depends on precision, in mpmath
-    pytest.param(*pE, None, marks=mark.skip(reason="At pole")),
+    pytest.param(*pE, None, marks=mark.skip("At pole")),
     (*pF, NAN),
-    pytest.param(*pG, None, marks=mark.skip(reason="See note on point G")),
+    pytest.param(*pG, None, marks=mark.skip("See note on point G")),
     (*pH, NAN),
     (*pI, 1.0),
     (*pJ, 1.0),
@@ -135,8 +135,8 @@ test_cases_dfdm = [
     (*pD, dfdm_at_pE),
     (*pE, jnp.inf),
     (*pF, NAN),
-    pytest.param(*pG, None, marks=mark.skip(reason="goes to ∞; see note above")),
-    pytest.param(*pH, None, marks=mark.skip(reason="indeterminate / zero")),
+    pytest.param(*pG, None, marks=mark.skip("goes to ∞; see note above")),
+    pytest.param(*pH, None, marks=mark.skip("indeterminate / zero")),
     (*pI, 0.0),
     (*pJ, 0.0),
     (*pK, dfdm_at_pK),
