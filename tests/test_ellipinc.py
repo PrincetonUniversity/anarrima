@@ -222,3 +222,15 @@ def test_einc(phi, m, expected):
 
     result = einc(phi, m)
     assert values_match(result, expected)
+
+@pytest.mark.parametrize("phi, m, _", test_cases_f)
+def test_fused_form_equality_f(phi, m, _):
+    f1 = finc(phi, m)
+    f2, _ = legendre.ellip_finc_einc_fused(phi, m)
+    assert f1 == f2
+
+@pytest.mark.parametrize("phi, m, _", test_cases_f)
+def test_fused_form_equality_e(phi, m, _):
+    e1 = einc(phi, m)
+    _, e2 = legendre.ellip_finc_einc_fused(phi, m)
+    assert e1 == e2
