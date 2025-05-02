@@ -1,6 +1,7 @@
 import anarrima.elliptic.legendre as legendre
 import pytest
 from pytest import approx
+from pytest import mark
 import jax
 jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
@@ -60,13 +61,16 @@ test_cases_f = [
     (*pD, float(mp.ellipk(-1))),
     # spike (or fin, at φ > π/2) up to ∞
     # result depends on precision, in mpmath
-    (*pE, None),
+    pytest.param(*pE, None, marks=mark.skip(reason="At pole")),
     (*pF, NAN),
-    (*pG, float(mp.ellipf(PI4, +2))),
-    (*pH, NAN), # Mathematica returns 0
+    # slightly-off sin(φ) & catastrophic subtraction make
+    # y wrong by 1e-16 and the result is off by 1e-8
+    pytest.param(*pG, None, marks=mark.skip(reason="Loss of precision here")),
+    # Mathematica returns 0
+    pytest.param(*pH, None, marks=mark.skip(reason="0 or Indeterminate")),
     (*pI, 0.0),
     (*pJ, 0.0),
-    (*pK, float(mp.ellipf(PI4, -1))),
+    (*pK, float(mp.ellipf(*pK))),
     (*pL, NAN),
     (*pM, NAN),
     (*pN, NAN),
@@ -76,13 +80,79 @@ test_cases_f = [
 @pytest.mark.parametrize("phi, m, expected", test_cases_f)
 def test_finc(phi, m, expected):
     if expected is None:
-        return
+        assert False
 
     result = finc(phi, m)
     assert values_match(result, expected)
 
 def test_finc_pE():
     assert finc(*pE) > 38.025
+
+def test_finc_pG():
+    result = finc(*pG)
+    expected = float(mp.ellipf(*pG))
+    assert result == approx(expected, rel=3e-8)
+
+# Define test cases with points and expected values
+test_cases_dfdφ = [
+    # kind of intederminate;
+    # could be 0 or 1 depending on interpretation
+    (*pA, 0.0), 
+    (*pB, 0.0),
+    (*pC, 0.0),
+    (*pD, 1/jnp.sqrt(2)),
+    # spike (or fin, at φ > π/2) up to ∞
+    # result depends on precision, in mpmath
+    pytest.param(*pE, None, marks=mark.skip(reason="At pole")),
+    (*pF, NAN),
+    pytest.param(*pG, None, marks=mark.skip(reason="See note on point G")),
+    (*pH, NAN),
+    (*pI, 1.0),
+    (*pJ, 1.0),
+    (*pK, jnp.sqrt(2/3)),
+    (*pL, NAN),
+    (*pM, NAN),
+    (*pN, NAN),
+    (*pO, NAN),
+]
+
+@pytest.mark.parametrize("phi, m, expected", test_cases_dfdφ)
+def test_dfinc_dphi(phi, m, expected):
+    if expected is None:
+        assert False
+
+    result = grad(finc)(phi, m)
+    assert values_match(result, expected)
+
+# Define test cases with points and expected values
+dfdm_at_pE = float((2 * mp.ellipk(-1) - mp.ellipe(-1)) / 4)
+dfdm_at_pK = float(mp.elliprd(1/2, 1, 3/2)/(12 * mp.sqrt(2)))
+
+test_cases_dfdm = [
+    (*pA, 0.0), 
+    (*pB, 0.0),
+    (*pC, 0.0),
+    (*pD, dfdm_at_pE),
+    (*pE, jnp.inf),
+    (*pF, NAN),
+    pytest.param(*pG, None, marks=mark.skip(reason="goes to ∞; see note above")),
+    pytest.param(*pH, None, marks=mark.skip(reason="indeterminate / zero")),
+    (*pI, 0.0),
+    (*pJ, 0.0),
+    (*pK, dfdm_at_pK),
+    (*pL, NAN),
+    (*pM, NAN),
+    (*pN, NAN),
+    (*pO, NAN),
+]
+
+@pytest.mark.parametrize("phi, m, expected", test_cases_dfdm)
+def test_dfinc_dm(phi, m, expected):
+    if expected is None:
+        assert False
+
+    result = grad(finc, argnums=1)(phi, m)
+    assert values_match(result, expected)
 
 # Helper function to check if values match, handling special cases
 def values_match(a, b):
@@ -92,4 +162,4 @@ def values_match(a, b):
         return jnp.sign(a) == jnp.sign(b)
     else:
         # For finite values, use approximate comparison
-        return a == approx(b, rel=1e-6)
+        return a == approx(b, rel=1e-15)
