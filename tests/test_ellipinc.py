@@ -124,15 +124,32 @@ def test_dfinc_dphi(phi, m, expected):
     result = grad(finc)(phi, m)
     assert values_match(result, expected)
 
+def high_precison_dfdm(φ, m):
+    φ = mpf(φ)
+    m = mpf(m)
+    sinφ = mp.sin(φ)
+    sin_sq_φ = sinφ * sinφ
+    sin_cu_φ = sinφ * sin_sq_φ
+    x = mp.cos(φ)**2
+    y = 1 - m * sin_sq_φ
+    z = 1
+
+    # compute dF/dm
+    # note the specific argument order!
+    d_ellipf_dm = sin_cu_φ * mp.elliprd(z, x, y) / 6
+    return d_ellipf_dm
+
 # Define test cases with points and expected values
-dfdm_at_pE = float((2 * mp.ellipk(-1) - mp.ellipe(-1)) / 4)
-dfdm_at_pK = float(mp.elliprd(1/2, 1, 3/2)/(12 * mp.sqrt(2)))
+#dfdm_at_pD = float((2 * mp.ellipk(-1) - mp.ellipe(-1)) / 4)
+dfdm_at_pD = float(high_precison_dfdm(*pD))
+#dfdm_at_pK = float(mp.elliprd(1/2, 1, 3/2)/(12 * mp.sqrt(2)))
+dfdm_at_pK = float(high_precison_dfdm(*pK))
 
 test_cases_dfdm = [
     (*pA, 0.0), 
     (*pB, 0.0),
     (*pC, 0.0),
-    (*pD, dfdm_at_pE),
+    (*pD, dfdm_at_pD),
     (*pE, jnp.inf),
     (*pF, NAN),
     pytest.param(*pG, None, marks=mark.skip("goes to ∞; see note above")),
