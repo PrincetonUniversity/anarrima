@@ -1,25 +1,23 @@
 import anarrima.elliptic.legendre as legendre
-import pytest
-from pytest import approx
-from pytest import mark
+
 import jax
 jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jax import grad
 
 import mpmath as mp
-from mpmath import almosteq, mpf
+
+import pytest
+from pytest import approx
+from pytest import mark
 
 INF = jnp.inf
-ONE = 1.0
-ZER = 0.0
 PI2 = jnp.pi/2
 PI4 = jnp.pi/4
 NAN = jnp.nan
 
 isnan = jnp.isnan
 isinf = jnp.isinf
-isneginf = jnp.isneginf
 
 einc = legendre.ellipeinc
 finc = legendre.ellipfinc
@@ -27,31 +25,53 @@ finc = legendre.ellipfinc
 # mpmath settings
 mp.mp.dps = 40
 
+# Helper function to check if values match, handling special cases
+def values_match(a, b):
+    if isnan(a) and isnan(b):
+        return True
+    elif isinf(a) and isinf(b):
+        return jnp.sign(a) == jnp.sign(b)
+    else:
+        # For finite values, use approximate comparison
+        return a == approx(b, rel=1e-15)
+
+
+# Map of points to test
+##########################################
 # NaN            L                      M
 # 
 # π/2  C --------D-------E-------F
-#      |                  |
-# π/4  B         K         G            N
-#      |                    \
+#      |         P       | 
+#      |                  \
+#      |                   |
+# π/4  B         K          G           N
+#      |                     \
 #  0   A---------J-------I-------H      O
 # 
 #     -∞        -1   0   1       ∞     NaN
+##########################################
 
 pA = (0.0, -INF)
 pB = (PI4, -INF)
 pC = (PI2, -INF)
-pD = (PI2, -ONE)
-pE = (PI2, +ONE)
+pD = (PI2, -1.0)
+pE = (PI2, +1.0)
 pF = (PI2, +INF)
 pG = (PI4, +2.0)
 pH = (0.0, +INF)
-pI = (0.0, +1. )
-pJ = (0.0, -1. )
-pK = (PI4, -1. )
-pL = (NAN, -1. )
+pI = (0.0, +1.0)
+pJ = (0.0, -1.0)
+pK = (PI4, -1.0)
+pL = (NAN, -1.0)
 pM = (NAN, NAN )
 pN = (PI4, NAN )
 pO = (0.0, NAN )
+pP = (PI2 - 1e-4, -1.)
+
+### Tests for ellipfinc
+
+def high_precision_finc(φ, m):
+    return float(mp.ellipf(φ, m))
 
 # Define test cases with points and expected values
 test_cases_f = [
@@ -75,6 +95,7 @@ test_cases_f = [
     (*pM, NAN),
     (*pN, NAN),
     (*pO, NAN),
+    (*pP, high_precision_finc(*pP)),
 ]
 
 @pytest.mark.parametrize("phi, m, expected", test_cases_f)
@@ -92,6 +113,12 @@ def test_finc_pG():
     result = finc(*pG)
     expected = float(mp.ellipf(*pG))
     assert result == approx(expected, rel=3e-8)
+
+@pytest.mark.parametrize("phi, m, _", test_cases_f)
+def test_ellipf_antisymmetry(phi, m, _):
+    pos = finc(phi, m)
+    neg = finc(-phi, m)
+    assert values_match(pos, -neg)
 
 # Define test cases with points and expected values
 test_cases_dfdφ = [
@@ -125,8 +152,6 @@ def test_dfinc_dphi(phi, m, expected):
     assert values_match(result, expected)
 
 def high_precison_dfdm(φ, m):
-    φ = mpf(φ)
-    m = mpf(m)
     sinφ = mp.sin(φ)
     sin_sq_φ = sinφ * sinφ
     sin_cu_φ = sinφ * sin_sq_φ
@@ -137,30 +162,25 @@ def high_precison_dfdm(φ, m):
     # compute dF/dm
     # note the specific argument order!
     d_ellipf_dm = sin_cu_φ * mp.elliprd(z, x, y) / 6
-    return d_ellipf_dm
-
-# Define test cases with points and expected values
-#dfdm_at_pD = float((2 * mp.ellipk(-1) - mp.ellipe(-1)) / 4)
-dfdm_at_pD = float(high_precison_dfdm(*pD))
-#dfdm_at_pK = float(mp.elliprd(1/2, 1, 3/2)/(12 * mp.sqrt(2)))
-dfdm_at_pK = float(high_precison_dfdm(*pK))
+    return float(d_ellipf_dm)
 
 test_cases_dfdm = [
     (*pA, 0.0), 
     (*pB, 0.0),
     (*pC, 0.0),
-    (*pD, dfdm_at_pD),
+    (*pD, high_precison_dfdm(*pD)),
     (*pE, jnp.inf),
     (*pF, NAN),
     pytest.param(*pG, None, marks=mark.skip("goes to ∞; see note above")),
     pytest.param(*pH, None, marks=mark.skip("indeterminate / zero")),
     (*pI, 0.0),
     (*pJ, 0.0),
-    (*pK, dfdm_at_pK),
+    (*pK, high_precison_dfdm(*pK)),
     (*pL, NAN),
     (*pM, NAN),
     (*pN, NAN),
     (*pO, NAN),
+    (*pP, high_precison_dfdm(*pP)),
 ]
 
 @pytest.mark.parametrize("phi, m, expected", test_cases_dfdm)
@@ -171,12 +191,34 @@ def test_dfinc_dm(phi, m, expected):
     result = grad(finc, argnums=1)(phi, m)
     assert values_match(result, expected)
 
-# Helper function to check if values match, handling special cases
-def values_match(a, b):
-    if isnan(a) and isnan(b):
-        return True
-    elif isinf(a) and isinf(b):
-        return jnp.sign(a) == jnp.sign(b)
-    else:
-        # For finite values, use approximate comparison
-        return a == approx(b, rel=1e-15)
+### Tests for ellipeinc
+
+def high_precision_einc(φ, m):
+    return float(mp.ellipe(φ, m))
+
+test_cases_e = [
+    (*pA, INF),
+    (*pB, INF), # MMA: ComplexInfinity
+    (*pC, INF), # MMA: ComplexInfinity
+    (*pD, float(mp.ellipe(-1))),
+    (*pE, 1.0),
+    (*pF, NAN),
+    (*pG, high_precision_einc(*pG)),
+    (*pH, NAN), # scipy and mpmath return nan here; Mathematica returns ComplexInfinity
+    (*pI, 0.0),
+    (*pJ, 0.0),
+    (*pK, high_precision_einc(*pK)),
+    (*pL, NAN),
+    (*pM, NAN),
+    (*pN, NAN),
+    (*pO, NAN),
+    (*pP, high_precision_einc(*pP)),
+]
+
+@pytest.mark.parametrize("phi, m, expected", test_cases_e)
+def test_einc(phi, m, expected):
+    if expected is None:
+        assert False
+
+    result = einc(phi, m)
+    assert values_match(result, expected)

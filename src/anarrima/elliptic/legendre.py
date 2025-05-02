@@ -92,12 +92,17 @@ def ellipeinc(φ, m):
     result = jnp.where(output_is_nan, jnp.nan, result)
     return result
 
-def ellip_finc_einc_fused(φ, m):
+# standard case
+def _ellip_finc_einc_fused(φ, m):
     sinφ = sin(φ)
     sin_cu_φ = sinφ * jnp.square(sinφ)
     x, y, z = _xyz_incomplete(φ, m)
     finc = sinφ * elliprf(x, y, z)
     einc = finc - m * sin_cu_φ * elliprd(x, y, z) / 3
+    return finc, einc
+
+def ellip_finc_einc_fused(φ, m):
+    finc, einc = _ellip_finc_einc_fused(φ, m)
     return finc, einc
 
 ##############################
