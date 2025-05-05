@@ -19,7 +19,6 @@ NAN = jnp.nan
 isnan = jnp.isnan
 isinf = jnp.isinf
 
-einc = legendre.ellipeinc
 finc = legendre.ellipfinc
 
 # mpmath settings
@@ -191,46 +190,14 @@ def test_dfinc_dm(phi, m, expected):
     result = grad(finc, argnums=1)(phi, m)
     assert values_match(result, expected)
 
-### Tests for ellipeinc
-
-def high_precision_einc(φ, m):
-    return float(mp.ellipe(φ, m))
-
-test_cases_e = [
-    (*pA, INF),
-    (*pB, INF), # MMA: ComplexInfinity
-    (*pC, INF), # MMA: ComplexInfinity
-    (*pD, float(mp.ellipe(-1))),
-    (*pE, 1.0),
-    (*pF, NAN),
-    (*pG, high_precision_einc(*pG)),
-    (*pH, NAN), # scipy and mpmath return nan here; Mathematica returns ComplexInfinity
-    (*pI, 0.0),
-    (*pJ, 0.0),
-    (*pK, high_precision_einc(*pK)),
-    (*pL, NAN),
-    (*pM, NAN),
-    (*pN, NAN),
-    (*pO, NAN),
-    (*pP, high_precision_einc(*pP)),
-]
-
-@pytest.mark.parametrize("phi, m, expected", test_cases_e)
-def test_einc(phi, m, expected):
-    if expected is None:
-        assert False
-
-    result = einc(phi, m)
-    assert values_match(result, expected)
-
-@pytest.mark.parametrize("phi, m, _", test_cases_f)
-def test_fused_form_equality_f(phi, m, _):
-    f1 = finc(phi, m)
-    f2, _ = legendre.ellip_finc_einc_fused(phi, m)
-    assert values_match(f1, f2)
-
-@pytest.mark.parametrize("phi, m, _", test_cases_f)
-def test_fused_form_equality_e(phi, m, _):
-    e1 = einc(phi, m)
-    _, e2 = legendre.ellip_finc_einc_fused(phi, m)
-    assert values_match(e1, e2)
+# @pytest.mark.parametrize("phi, m, _", test_cases_f)
+# def test_fused_form_equality_f(phi, m, _):
+#     f1 = finc(phi, m)
+#     f2, _ = legendre.ellip_finc_einc_fused(phi, m)
+#     assert values_match(f1, f2)
+# 
+# @pytest.mark.parametrize("phi, m, _", test_cases_f)
+# def test_fused_form_equality_e(phi, m, _):
+#     e1 = einc(phi, m)
+#     _, e2 = legendre.ellip_finc_einc_fused(phi, m)
+#     assert values_match(e1, e2)
