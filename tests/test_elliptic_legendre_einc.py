@@ -74,7 +74,7 @@ def high_precision_einc(φ, m):
     return float(mp.ellipe(φ, m))
 
 test_cases_e = [
-    (*pA, INF),
+    (*pA, 0.0),
     (*pB, INF), # MMA: ComplexInfinity
     (*pC, INF), # MMA: ComplexInfinity
     (*pD, float(mp.ellipe(-1))),

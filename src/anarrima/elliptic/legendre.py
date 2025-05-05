@@ -23,6 +23,7 @@ def _ellipfinc(φ, m):
     x, y, z = _xyz_incomplete(φ, m)
     return sinφ * elliprf(x, y, z)
 
+@jax.custom_jvp
 def _ellipeinc(φ, m):
     """
     Defined for φ in [-π/2, π/2] and real m s.t. y>=0.
@@ -33,6 +34,29 @@ def _ellipeinc(φ, m):
     rf = elliprf(x, y, z)
     rd = elliprd(x, y, z)
     return sinφ * rf - m * sin_cu_φ * rd / 3
+
+# This helps handle the special case of φ = π/2, m=1
+@_ellipeinc.defjvp
+def _ellipeinc_jvp(primals, tangents):
+    # doesn't work if:
+    # sin[φ] == 0 || (m sin[φ] == 0 && m sin[φ] != sin[φ]
+    φ, m = primals
+    φ_dot, m_dot = tangents
+
+    d_ellipe_dφ = sqrt(1 - m*sin(φ)**2)
+
+    sinφ = sin(φ)
+    sin_sq_φ = jnp.square(sinφ)
+    sin_cu_φ = sin_sq_φ * sinφ
+    x, y, z = _xyz_incomplete(φ, m)
+    rf = elliprf(x, y, z)
+    rd = elliprd(x, y, z)
+
+    d_ellipe_dm = -sin_cu_φ * rd / 6
+    primal_out = sinφ * rf - m * sin_cu_φ * rd / 3
+    tangent_out = d_ellipe_dφ * φ_dot + d_ellipe_dm * m_dot
+    return primal_out, tangent_out
+
 
 def ellipfinc(φ, m):
     """Incomplete elliptic integral of the first kind
@@ -65,6 +89,37 @@ def ellipfinc(φ, m):
 
     return result
 
+
+
+@jax.custom_jvp
+def _ellipeinc_at_m_neginf(φ, m):
+    phi_finite_pos = jnp.isfinite(φ) & (φ > 0.0)
+    phi_finite_neg = jnp.isfinite(φ) & (φ < 0.0)
+
+    zeros = jnp.zeros_like(φ)
+    result = jnp.where(phi_finite_pos, jnp.inf, zeros)
+    result = jnp.where(phi_finite_neg,  -jnp.inf, result)
+    result = jnp.where(jnp.isnan(φ), jnp.nan, result)
+    return result
+
+@_ellipeinc_at_m_neginf.defjvp
+def _ellipeinc_at_m_neginf_jvp(primals, tangents):
+    φ, m = primals
+    φ_dot, m_dot = tangents
+
+    phi_finite_nonzero = jnp.isfinite(φ) & (φ != 0.0)
+    zeros = jnp.zeros_like(φ)
+    # Writing -m instead of jnp.inf here is a hack that allows
+    # gradients to work correctly 
+    result = jnp.where(phi_finite_nonzero, -m, zeros)
+    d_ellipe_dφ = jnp.where(jnp.isnan(φ) | (φ == 0.0), jnp.nan, result)
+
+    d_ellipe_dm = jnp.where(jnp.isnan(φ), jnp.nan, zeros)
+
+    primal_out = _ellipeinc_at_m_neginf(φ, m)
+    tangent_out = d_ellipe_dφ * φ_dot + d_ellipe_dm * m_dot
+    return primal_out, tangent_out
+
 def ellipeinc(φ, m):
     """Incomplete elliptic integral of the second kind.
     Defined for φ in [-π/2, π/2] and real m.
@@ -77,20 +132,24 @@ def ellipeinc(φ, m):
     m_is_neginf = jnp.isneginf(m)
     phi_finite, m_finite = jnp.isfinite(φ), jnp.isfinite(m)
     either_is_nan = jnp.isnan(φ) | jnp.isnan(m)
+    m_sanitized = jnp.where(m_is_neginf, 0., m)
 
     y = 1. - m * jnp.square(sin(φ))
 
     m_is_safe = y >= 0.
-    print(f"M is safe: {m_is_safe}")
     output_is_nan = either_is_nan | (~m_is_safe & ~m_is_neginf)
     output_is_inf = phi_finite & m_is_neginf
 
     use_standard_case = m_finite & phi_in_standard_range & m_is_safe
 
-    standard_eval = _ellipeinc(φ, m)
+    standard_eval = _ellipeinc(φ, m_sanitized)
+    m_for_neginf = jnp.where(m_is_neginf, m, 0.0)
+    m_neginf_eval = _ellipeinc_at_m_neginf(φ, m)
+
     zeros = jnp.zeros_like(φ)
     result = jnp.where(use_standard_case, standard_eval, zeros)
-    result = jnp.where(output_is_inf, jnp.inf, result)
+    result = jnp.where(m_is_neginf, m_neginf_eval, result)
+    #result = jnp.where(output_is_inf, jnp.inf, result)
     result = jnp.where(output_is_nan, jnp.nan, result)
     return result
 
@@ -101,10 +160,6 @@ def _ellip_finc_einc_fused(φ, m):
     x, y, z = _xyz_incomplete(φ, m)
     finc = sinφ * elliprf(x, y, z)
     einc = finc - m * sin_cu_φ * elliprd(x, y, z) / 3
-    return finc, einc
-
-def ellip_finc_einc_fused(φ, m):
-    finc, einc = _ellip_finc_einc_fused(φ, m)
     return finc, einc
 
 ##############################
