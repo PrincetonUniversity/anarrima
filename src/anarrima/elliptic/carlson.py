@@ -113,6 +113,19 @@ def _rd(x0, y0, z0, n_loops):
 
     return sum_term + series_term
 
+def _drd_dxyz_all_equal(x):
+    # drd_dx and drd_dy are the same
+    v = -3. / (10 * x**(5./2))
+    # drd_dz has -9/10 instead of -3/10
+    return v, v, 3 * v
+
+# not used at the moment
+def _drd_dx_xz_equal(x, y):
+    drd_dx_xz_numer = 3*((5*x - 2*y) * jnp.sqrt(y)/jnp.square(x) - 3 * rf0)
+    drd_dx_xz_denom = 16 * (x - y)**2
+    drd_dx_xz = drd_dx_xz_numer / drd_dx_xz_denom
+    return drd_dx_xz
+
 # Does this jvp ever add accuracy or speed up evaluation?
 @_rd.defjvp
 def _rd_jvp(n_loops, primals, tangents):
@@ -126,11 +139,27 @@ def _rd_jvp(n_loops, primals, tangents):
 
     primals_out = rd0
 
-    drd_dx = (-rd0 + rd_x_last)/(2 * (x - z))
-    drd_dy = (-rd0 + rd_y_last)/(2 * (y - z))
-    numer = -3 * sqrt(x * y) + z**(3/2)*(2*(x + y - 2*z) * rd0 + 3 * rf0)
-    denom = 2 * z**(3/2) * (z - x) * (z - y)
-    drd_dz = numer / denom
+    # special case to avoid divide-by-zero in the standard case
+    three_equal = (x == y) & (y == z)
+    drd_dx_all_equal, drd_dy_all_equal, drd_dz_all_equal = _drd_dxyz_all_equal(x)
+    # We might also define special cases for x == z ≠ y and y == z != x,
+    # or for extreme values like infinity,
+    # but those are not needed for now.
+    is_standard = jnp.logical_not(three_equal)
+
+    x_minus_z = jnp.where(is_standard, x - z, 1.)
+    y_minus_z = jnp.where(is_standard, y - z, 1.)
+
+    drd_dx_standard = (-rd0 + rd_x_last)/(2 * x_minus_z)
+    drd_dy_standard = (-rd0 + rd_y_last)/(2 * y_minus_z)
+
+    numer = -3 * sqrt(x * y) + z**(3/2) * (2*(x + y - 2*z) * rd0 + 3 * rf0)
+    denom = 2 * z**(3/2) * (x_minus_z) * (y_minus_z)
+    drd_dz_standard = numer / denom
+
+    drd_dx = jnp.where(is_standard, drd_dx_standard, drd_dx_all_equal)
+    drd_dy = jnp.where(is_standard, drd_dy_standard, drd_dy_all_equal)
+    drd_dz = jnp.where(is_standard, drd_dz_standard, drd_dz_all_equal)
     tangents_out = (drd_dx * x_dot
                    + drd_dy * y_dot
                    + drd_dz * z_dot)

@@ -72,7 +72,8 @@ def ellipeinc(φ, m):
     φ, m = jnp.broadcast_arrays(φ, m)
 
     phi_is_zero = φ == 0.
-    phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2) & ~phi_is_zero
+    #phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2) & ~phi_is_zero
+    phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2)
     m_is_neginf = jnp.isneginf(m)
     phi_finite, m_finite = jnp.isfinite(φ), jnp.isfinite(m)
     either_is_nan = jnp.isnan(φ) | jnp.isnan(m)
@@ -80,6 +81,7 @@ def ellipeinc(φ, m):
     y = 1. - m * jnp.square(sin(φ))
 
     m_is_safe = y >= 0.
+    print(f"M is safe: {m_is_safe}")
     output_is_nan = either_is_nan | (~m_is_safe & ~m_is_neginf)
     output_is_inf = phi_finite & m_is_neginf
 
