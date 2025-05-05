@@ -1,4 +1,5 @@
 import anarrima.elliptic.legendre as legendre
+from utils import values_match
 
 import jax
 jax.config.update("jax_enable_x64", True)
@@ -23,16 +24,6 @@ finc = legendre.ellipfinc
 
 # mpmath settings
 mp.mp.dps = 40
-
-# Helper function to check if values match, handling special cases
-def values_match(a, b):
-    if isnan(a) and isnan(b):
-        return True
-    elif isinf(a) and isinf(b):
-        return jnp.sign(a) == jnp.sign(b)
-    else:
-        # For finite values, use approximate comparison
-        return a == approx(b, rel=1e-15)
 
 
 # Map of points to test
