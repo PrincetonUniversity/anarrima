@@ -121,24 +121,37 @@ def test_deinc_dφ_pG():
     de_dφ = grad(einc, argnums=0)(*pG)
     assert 0.0 == approx(de_dφ, abs=3e-8)
 
-# test_cases_dedm = [
-#     (*pA, INF),
-#     (*pB, INF), # MMA: ComplexInfinity
-#     (*pC, INF), # MMA: ComplexInfinity
-#     (*pD, float(mp.ellipe(-1))),
-#     (*pE, 1.0),
-#     (*pF, NAN),
-#     (*pG, high_precision_einc(*pG)),
-#     (*pH, NAN), # scipy and mpmath return nan here; Mathematica returns ComplexInfinity
-#     (*pI, 0.0),
-#     (*pJ, 0.0),
-#     (*pK, high_precision_einc(*pK)),
-#     (*pL, NAN),
-#     (*pM, NAN),
-#     (*pN, NAN),
-#     (*pO, NAN),
-#     (*pP, high_precision_einc(*pP)),
-# ]
+def high_precision_dedm(φ, m):
+    dedm = (mp.ellipe(φ, m) - mp.ellipf(φ, m))/(2 * m)
+    return float(dedm)
+
+test_cases_dedm = [
+    (*pA, 0.0),
+    (*pB, 0.0), # MMA: ComplexInfinity
+    (*pC, 0.0), # MMA: ComplexInfinity
+    (*pD, high_precision_dedm(*pD)),
+    (*pE, -INF),
+    (*pF, NAN), # unclear; could be zero in absolute magnitude but approach is complex
+    (*pG, high_precision_dedm(*pG)),
+    # mpmath return nan from ∞ * 0; Mathematica says Indeterminate...; 
+    (*pH, NAN),
+    (*pI, high_precision_dedm(*pI)),
+    (*pJ, high_precision_dedm(*pJ)),
+    (*pK, high_precision_dedm(*pK)),
+    (*pL, NAN),
+    (*pM, NAN),
+    (*pN, NAN),
+    (*pO, NAN),
+    (*pP, high_precision_dedm(*pP)),
+]
+
+@pytest.mark.parametrize("phi, m, expected", test_cases_dedm)
+def test_deinc_dm(phi, m, expected):
+    if expected is None:
+        assert False
+
+    result = grad(einc, argnums=1)(phi, m)
+    assert values_match(result, expected, rel=1e-15)
 
 # @pytest.mark.parametrize("phi, m, _", test_cases_f)
 # def test_fused_form_equality_f(phi, m, _):
