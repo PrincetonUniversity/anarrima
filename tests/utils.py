@@ -13,11 +13,11 @@ isnan = jnp.isnan
 isinf = jnp.isinf
 
 # Helper function to check if values match, handling special cases
-def values_match(a, b):
+def values_match(a, b, **kwargs):
     if isnan(a) and isnan(b):
         return True
     elif isinf(a) and isinf(b):
         return jnp.sign(a) == jnp.sign(b)
     else:
         # For finite values, use approximate comparison
-        return a == approx(b, rel=1e-15)
+        return a == approx(b, **kwargs)

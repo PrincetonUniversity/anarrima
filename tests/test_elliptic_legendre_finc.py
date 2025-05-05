@@ -94,7 +94,7 @@ def test_finc(phi, m, expected):
         assert False
 
     result = finc(phi, m)
-    assert values_match(result, expected)
+    assert values_match(result, expected, rel=1e-15)
 
 def test_finc_pE():
     assert finc(*pE) > 38.025

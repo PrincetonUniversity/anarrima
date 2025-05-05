@@ -93,14 +93,8 @@ def ellipfinc(φ, m):
 
 @jax.custom_jvp
 def _ellipeinc_at_m_neginf(φ, m):
-    phi_finite_pos = jnp.isfinite(φ) & (φ > 0.0)
-    phi_finite_neg = jnp.isfinite(φ) & (φ < 0.0)
-
     zeros = jnp.zeros_like(φ)
-    result = jnp.where(phi_finite_pos, jnp.inf, zeros)
-    result = jnp.where(phi_finite_neg,  -jnp.inf, result)
-    result = jnp.where(jnp.isnan(φ), jnp.nan, result)
-    return result
+    return jnp.where(jnp.isfinite(φ) & (φ != 0.0), -m, zeros)
 
 @_ellipeinc_at_m_neginf.defjvp
 def _ellipeinc_at_m_neginf_jvp(primals, tangents):
@@ -112,7 +106,9 @@ def _ellipeinc_at_m_neginf_jvp(primals, tangents):
     # Writing -m instead of jnp.inf here is a hack that allows
     # gradients to work correctly 
     result = jnp.where(phi_finite_nonzero, -m, zeros)
-    d_ellipe_dφ = jnp.where(jnp.isnan(φ) | (φ == 0.0), jnp.nan, result)
+    # the last isneginf(m) is here to protect the gradient flow
+    # when m is NOT neginf
+    d_ellipe_dφ = jnp.where((jnp.isnan(φ) | (φ == 0.0)) & jnp.isneginf(m), jnp.nan, result)
 
     d_ellipe_dm = jnp.where(jnp.isnan(φ), jnp.nan, zeros)
 
@@ -126,11 +122,9 @@ def ellipeinc(φ, m):
     """
     φ, m = jnp.broadcast_arrays(φ, m)
 
-    phi_is_zero = φ == 0.
-    #phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2) & ~phi_is_zero
     phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2)
     m_is_neginf = jnp.isneginf(m)
-    phi_finite, m_finite = jnp.isfinite(φ), jnp.isfinite(m)
+    m_finite = jnp.isfinite(m)
     either_is_nan = jnp.isnan(φ) | jnp.isnan(m)
     m_sanitized = jnp.where(m_is_neginf, 0., m)
 
@@ -138,18 +132,15 @@ def ellipeinc(φ, m):
 
     m_is_safe = y >= 0.
     output_is_nan = either_is_nan | (~m_is_safe & ~m_is_neginf)
-    output_is_inf = phi_finite & m_is_neginf
 
     use_standard_case = m_finite & phi_in_standard_range & m_is_safe
 
     standard_eval = _ellipeinc(φ, m_sanitized)
-    m_for_neginf = jnp.where(m_is_neginf, m, 0.0)
     m_neginf_eval = _ellipeinc_at_m_neginf(φ, m)
 
     zeros = jnp.zeros_like(φ)
     result = jnp.where(use_standard_case, standard_eval, zeros)
     result = jnp.where(m_is_neginf, m_neginf_eval, result)
-    #result = jnp.where(output_is_inf, jnp.inf, result)
     result = jnp.where(output_is_nan, jnp.nan, result)
     return result
 
