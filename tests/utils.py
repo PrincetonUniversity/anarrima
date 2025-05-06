@@ -1,16 +1,18 @@
 import jax
+
 jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 
 from pytest import approx
 
 INF = jnp.inf
-PI2 = jnp.pi/2
-PI4 = jnp.pi/4
+PI2 = jnp.pi / 2
+PI4 = jnp.pi / 4
 NAN = jnp.nan
 
 isnan = jnp.isnan
 isinf = jnp.isinf
+
 
 # Helper function to check if values match, handling special cases
 def values_match(a, b, **kwargs):

@@ -8,12 +8,14 @@ sqrt = jnp.sqrt
 sin = jnp.sin
 cos = jnp.cos
 
+
 def _xyz_incomplete(φ, m):
     """Common arguments to rf and rd for einc and finc"""
     x = jnp.square(cos(φ))
     y = 1 - m * jnp.square(sin(φ))
-    z = 1.
+    z = 1.0
     return x, y, z
+
 
 def _ellipfinc(φ, m):
     """
@@ -22,6 +24,7 @@ def _ellipfinc(φ, m):
     sinφ = sin(φ)
     x, y, z = _xyz_incomplete(φ, m)
     return sinφ * elliprf(x, y, z)
+
 
 @jax.custom_jvp
 def _ellipeinc(φ, m):
@@ -35,13 +38,14 @@ def _ellipeinc(φ, m):
     rd = elliprd(x, y, z)
     return sinφ * rf - m * sin_cu_φ * rd / 3
 
+
 # This helps handle the special case of φ = π/2, m=1
 @_ellipeinc.defjvp
 def _ellipeinc_jvp(primals, tangents):
     φ, m = primals
     φ_dot, m_dot = tangents
 
-    d_ellipe_dφ = sqrt(1 - m*sin(φ)**2)
+    d_ellipe_dφ = sqrt(1 - m * sin(φ) ** 2)
 
     sinφ = sin(φ)
     sin_sq_φ = jnp.square(sinφ)
@@ -62,16 +66,16 @@ def ellipfinc(φ, m):
     Defined for φ in [-π/2, π/2] and real m.
     """
     # elementary tests of each variable
-    phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2)
+    phi_in_standard_range = (φ >= -jnp.pi / 2) & (φ <= jnp.pi / 2)
     either_is_nan = jnp.isnan(φ) | jnp.isnan(m)
     m_finite = jnp.isfinite(m)
     m_is_neginf = jnp.isneginf(m)
 
-    m_sanitized = jnp.where(m_is_neginf, 0., m)
+    m_sanitized = jnp.where(m_is_neginf, 0.0, m)
     y = 1 - m_sanitized * jnp.square(sin(φ))
 
     # out of bounds, return nan
-    m_is_safe = y >= 0.
+    m_is_safe = y >= 0.0
     output_is_nan = either_is_nan | ~m_is_safe
 
     # use standard case
@@ -87,11 +91,11 @@ def ellipfinc(φ, m):
     return result
 
 
-
 @jax.custom_jvp
 def _ellipeinc_at_m_neginf(φ, m):
     zeros = jnp.zeros_like(φ)
     return jnp.where(jnp.isfinite(φ) & (φ != 0.0), -m, zeros)
+
 
 @_ellipeinc_at_m_neginf.defjvp
 def _ellipeinc_at_m_neginf_jvp(primals, tangents):
@@ -101,11 +105,13 @@ def _ellipeinc_at_m_neginf_jvp(primals, tangents):
     phi_finite_nonzero = jnp.isfinite(φ) & (φ != 0.0)
     zeros = jnp.zeros_like(φ)
     # Writing -m instead of jnp.inf here is a hack that allows
-    # gradients to work correctly 
+    # gradients to work correctly
     result = jnp.where(phi_finite_nonzero, -m, zeros)
     # the last isneginf(m) is here to protect the gradient flow
     # when m is NOT neginf
-    d_ellipe_dφ = jnp.where((jnp.isnan(φ) | (φ == 0.0)) & jnp.isneginf(m), jnp.nan, result)
+    d_ellipe_dφ = jnp.where(
+        (jnp.isnan(φ) | (φ == 0.0)) & jnp.isneginf(m), jnp.nan, result
+    )
 
     d_ellipe_dm = jnp.where(jnp.isnan(φ), jnp.nan, zeros)
 
@@ -113,17 +119,18 @@ def _ellipeinc_at_m_neginf_jvp(primals, tangents):
     tangent_out = d_ellipe_dφ * φ_dot + d_ellipe_dm * m_dot
     return primal_out, tangent_out
 
+
 def ellipeinc(φ, m):
     """Incomplete elliptic integral of the second kind.
     Defined for φ in [-π/2, π/2] and real m.
     """
-    phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2)
+    phi_in_standard_range = (φ >= -jnp.pi / 2) & (φ <= jnp.pi / 2)
     m_is_neginf = jnp.isneginf(m)
     m_finite = jnp.isfinite(m)
     either_is_nan = jnp.isnan(φ) | jnp.isnan(m)
-    m_sanitized = jnp.where(m_is_neginf, 0., m)
-    y = 1. - m * jnp.square(sin(φ))
-    m_is_safe = y >= 0.
+    m_sanitized = jnp.where(m_is_neginf, 0.0, m)
+    y = 1.0 - m * jnp.square(sin(φ))
+    m_is_safe = y >= 0.0
     output_is_nan = either_is_nan | (~m_is_safe & ~m_is_neginf)
 
     use_standard_case = m_finite & phi_in_standard_range & m_is_safe
@@ -137,6 +144,7 @@ def ellipeinc(φ, m):
     result = jnp.where(output_is_nan, jnp.nan, result)
     return result
 
+
 # standard case
 def _ellip_finc_einc_fused(φ, m):
     """Evaluate F and E with 2 Carlson integrals, not 3"""
@@ -147,9 +155,11 @@ def _ellip_finc_einc_fused(φ, m):
     einc = finc - m * sin_cu_φ * elliprd(x, y, z) / 3
     return finc, einc
 
+
 ##############################
 # Treatment of Legendre K(m)
 ##############################
+
 
 def ellipk(m):
     """Legendre K"""
@@ -164,7 +174,9 @@ def ellipk(m):
     # is_neginf = jnp.isneginf(m)
 
     # case_1
-    use_large_negative = jnp.logical_and(is_finite, jnp.logical_not(above_large_negative_range))
+    use_large_negative = jnp.logical_and(
+        is_finite, jnp.logical_not(above_large_negative_range)
+    )
 
     # case_2
     use_standard = jnp.logical_and(above_large_negative_range, jnp.logical_not(near_1))
@@ -182,16 +194,18 @@ def ellipk(m):
     is_nan = jnp.isnan(m)
 
     zero_integer = jnp.zeros_like(m, dtype=jnp.int8)
-    which = (zero_integer + 
-             1 * use_large_negative +
-             2 * use_standard +
-             3 * use_near_1 +
-             4 * is_unity +
-             5 * jnp.logical_or(is_more_than_1, is_nan))
+    which = (
+        zero_integer
+        + 1 * use_large_negative
+        + 2 * use_standard
+        + 3 * use_near_1
+        + 4 * is_unity
+        + 5 * jnp.logical_or(is_more_than_1, is_nan)
+    )
 
     ### evaluate using Carlson's Rf
     # the 0.0 at the end is a safe value for K
-    sanitized_m = jnp.where(jnp.logical_and(is_finite, below_1), m, 0.)
+    sanitized_m = jnp.where(jnp.logical_and(is_finite, below_1), m, 0.0)
     standard_eval = _ellipk(sanitized_m)
 
     # between 1 - 1e-8 and 1
@@ -200,7 +214,7 @@ def ellipk(m):
 
     ### series for large, negative m
     # here the -1 is a safe value for the series treatment, which contains log(-m).
-    sanitized_m3 = jnp.where(jnp.logical_and(is_finite, below_0), m, -1.)
+    sanitized_m3 = jnp.where(jnp.logical_and(is_finite, below_0), m, -1.0)
     large_neg_series_eval = _k_series_large_negative_2_terms(sanitized_m3)
 
     ### outputs for special cases:
@@ -211,27 +225,26 @@ def ellipk(m):
     # K(x > 1) == nan
     nans = jnp.full_like(m, jnp.nan)
 
-    return jax.lax.select_n(which,
-                            zero,
-                            large_neg_series_eval,
-                            standard_eval,
-                            near_1_eval,
-                            infty,
-                            nans)
+    return jax.lax.select_n(
+        which, zero, large_neg_series_eval, standard_eval, near_1_eval, infty, nans
+    )
+
 
 # good from -1e10 < m < 1
 def _ellipk(m):
-    return _elliprf(0., 1. - m, 1., n_loops=7)
+    return _elliprf(0.0, 1.0 - m, 1.0, n_loops=7)
+
 
 # good for m < -1e10
 def _k_series_large_negative_2_terms(m):
-    w = -m # wumbo
+    w = -m  # wumbo
     ln2 = jnp.log(2)
     lnw = jnp.log(w)
     root_w = jnp.sqrt(w)
-    term_0 = (4 * ln2 + lnw)/(2 * root_w)
+    term_0 = (4 * ln2 + lnw) / (2 * root_w)
     term_1 = (2 - 4 * ln2 - lnw) / (8 * root_w * w)
     return term_0 + term_1
+
 
 def _km1_series_2_terms(p):
     # within 1e-15ish for m > 1 - 1e-8, i.e. p < 1e-8
@@ -239,8 +252,9 @@ def _km1_series_2_terms(p):
     ln2 = jnp.log(2)
     lnp = jnp.log(p)
     term_0 = (4 * ln2 - lnp) / 2
-    term_1 = p * ( 4 * ln2 - lnp - 2) / 8
+    term_1 = p * (4 * ln2 - lnp - 2) / 8
     return term_0 + term_1
+
 
 # m very close to 1
 def ellipkm1(p):
@@ -249,21 +263,24 @@ def ellipkm1(p):
     ln2 = jnp.log(2)
     lnp = jnp.log(p)
     term_0 = (4 * ln2 - lnp) / 2
-    term_1 = p * ( 4 * ln2 - lnp - 2) / 8
+    term_1 = p * (4 * ln2 - lnp - 2) / 8
     term_2 = 3 * p**2 * (12 * ln2 - 3 * lnp - 7) / 128
     term_3 = 5 * p**3 * (60 * ln2 - 15 * lnp - 37) / 1536
     term_4 = 35 * p**4 * (840 * ln2 - 210 * lnp - 533) / 196608
     term_5 = 63 * p**5 * (2520 * ln2 - 630 * lnp - 1627) / 1310720
     return term_0 + (term_1 + (term_2 + (term_3 + (term_4 + term_5))))
 
+
 ##############################
 # Treatment of Legendre E(m)
 ##############################
 
+
 def _ellipe(m):
-    rf = elliprf(0., 1. - m, 1.)
-    rd_term = m * elliprd(0., 1. - m, 1.) / 3
+    rf = elliprf(0.0, 1.0 - m, 1.0)
+    rd_term = m * elliprd(0.0, 1.0 - m, 1.0) / 3
     return rf - rd_term
+
 
 # Good for 0 < p < 1e-4
 # p = 1 - m
@@ -271,20 +288,22 @@ def _em1_series_3_terms(p):
     ln2 = jnp.log(2)
     lnp = jnp.log(p)
     term_0 = 1
-    term_1 = p * (-1 + 4*ln2 - lnp) / 4
-    term_2 = p**2 * (-13 + 24*ln2 - 6*lnp) / 64
-    term_3 = 3 * p**3 * (-12 + 20*ln2 - 5*lnp) / 256
+    term_1 = p * (-1 + 4 * ln2 - lnp) / 4
+    term_2 = p**2 * (-13 + 24 * ln2 - 6 * lnp) / 64
+    term_3 = 3 * p**3 * (-12 + 20 * ln2 - 5 * lnp) / 256
     return term_0 + (term_1 + (term_2 + term_3))
+
 
 # Good for m < -1e5
 def _ellipe_large_negative_m_2_terms(m):
-    w = -m # wumbo
+    w = -m  # wumbo
     ln2 = jnp.log(2)
     lnw = jnp.log(w)
     term_0 = w
-    term_1 = (1 + 4 * ln2 + lnw)/(4)
-    term_2 = (3 - 8 * ln2 - 2 * lnw)/(64 * w)
+    term_1 = (1 + 4 * ln2 + lnw) / (4)
+    term_2 = (3 - 8 * ln2 - 2 * lnw) / (64 * w)
     return jax.lax.rsqrt(w) * (term_0 + (term_1 + term_2))
+
 
 def ellipe(m):
     """Legendre E"""
@@ -299,7 +318,9 @@ def ellipe(m):
     is_neginf = jnp.isneginf(m)
 
     # case_1
-    use_large_negative = jnp.logical_and(is_finite, jnp.logical_not(above_large_negative_range))
+    use_large_negative = jnp.logical_and(
+        is_finite, jnp.logical_not(above_large_negative_range)
+    )
 
     # case_2
     use_standard = jnp.logical_and(above_large_negative_range, jnp.logical_not(near_1))
@@ -317,12 +338,14 @@ def ellipe(m):
     is_nan = jnp.isnan(m)
 
     zero_integer = jnp.zeros_like(m, dtype=jnp.int8)
-    which = (zero_integer +
-             1 * use_large_negative +
-             2 * use_standard +
-             3 * use_near_1 +
-             4 * is_unity +
-             5 * jnp.logical_or(is_more_than_1, is_nan))
+    which = (
+        zero_integer
+        + 1 * use_large_negative
+        + 2 * use_standard
+        + 3 * use_near_1
+        + 4 * is_unity
+        + 5 * jnp.logical_or(is_more_than_1, is_nan)
+    )
 
     ### series for large, negative m
     # here the -1 is a safe value for the series treatment, which contains log(-m).
@@ -336,7 +359,6 @@ def ellipe(m):
     ### Series near 1
     near_1_eval = _em1_series_3_terms(1 - sanitized_m2)
 
-
     ### outputs for special cases:
     # E(-inf) == inf
     infs = jnp.full_like(m, jnp.inf)
@@ -345,10 +367,6 @@ def ellipe(m):
     # E(x > 1) == nan
     nans = jnp.full_like(m, jnp.nan)
 
-    return jax.lax.select_n(which,
-                            infs,
-                            large_neg_series_eval,
-                            standard_eval,
-                            near_1_eval,
-                            ones,
-                            nans)
+    return jax.lax.select_n(
+        which, infs, large_neg_series_eval, standard_eval, near_1_eval, ones, nans
+    )
