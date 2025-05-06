@@ -9,7 +9,7 @@ sin = jnp.sin
 cos = jnp.cos
 
 def _xyz_incomplete(φ, m):
-    """Common arguments to rf and rd"""
+    """Common arguments to rf and rd for einc and finc"""
     x = jnp.square(cos(φ))
     y = 1 - m * jnp.square(sin(φ))
     z = 1.
@@ -19,7 +19,7 @@ def _ellipfinc(φ, m):
     """
     Defined for φ in [-π/2, π/2] and real m s.t. y>=0.
     """
-    sinφ = jnp.sin(φ)
+    sinφ = sin(φ)
     x, y, z = _xyz_incomplete(φ, m)
     return sinφ * elliprf(x, y, z)
 
@@ -38,8 +38,6 @@ def _ellipeinc(φ, m):
 # This helps handle the special case of φ = π/2, m=1
 @_ellipeinc.defjvp
 def _ellipeinc_jvp(primals, tangents):
-    # doesn't work if:
-    # sin[φ] == 0 || (m sin[φ] == 0 && m sin[φ] != sin[φ]
     φ, m = primals
     φ_dot, m_dot = tangents
 
@@ -70,8 +68,7 @@ def ellipfinc(φ, m):
     m_is_neginf = jnp.isneginf(m)
 
     m_sanitized = jnp.where(m_is_neginf, 0., m)
-    sinφ = jnp.sin(φ)
-    y = 1 - m_sanitized * jnp.square(sinφ)
+    y = 1 - m_sanitized * jnp.square(sin(φ))
 
     # out of bounds, return nan
     m_is_safe = y >= 0.
@@ -120,16 +117,12 @@ def ellipeinc(φ, m):
     """Incomplete elliptic integral of the second kind.
     Defined for φ in [-π/2, π/2] and real m.
     """
-    φ, m = jnp.broadcast_arrays(φ, m)
-
     phi_in_standard_range = (φ >= -jnp.pi/2) & (φ <= jnp.pi/2)
     m_is_neginf = jnp.isneginf(m)
     m_finite = jnp.isfinite(m)
     either_is_nan = jnp.isnan(φ) | jnp.isnan(m)
     m_sanitized = jnp.where(m_is_neginf, 0., m)
-
     y = 1. - m * jnp.square(sin(φ))
-
     m_is_safe = y >= 0.
     output_is_nan = either_is_nan | (~m_is_safe & ~m_is_neginf)
 
@@ -146,6 +139,7 @@ def ellipeinc(φ, m):
 
 # standard case
 def _ellip_finc_einc_fused(φ, m):
+    """Evaluate F and E with 2 Carlson integrals, not 3"""
     sinφ = sin(φ)
     sin_cu_φ = sinφ * jnp.square(sinφ)
     x, y, z = _xyz_incomplete(φ, m)
