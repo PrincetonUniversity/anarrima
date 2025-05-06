@@ -26,3 +26,6 @@ dev = [
 lint = [
     "ruff>=0.8.4",
 ]
+
+[tool.black]
+line-length = 88
