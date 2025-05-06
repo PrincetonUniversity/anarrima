@@ -161,15 +161,3 @@ def test_deinc_dm_pG():
     de_dm = grad(einc, argnums=1)(*pG)
     high_prec = high_precision_dedm(*pG)
     assert de_dm == approx(high_prec, rel=1e-8)
-
-# @pytest.mark.parametrize("phi, m, _", test_cases_f)
-# def test_fused_form_equality_f(phi, m, _):
-#     f1 = finc(phi, m)
-#     f2, _ = legendre.ellip_finc_einc_fused(phi, m)
-#     assert values_match(f1, f2)
-# 
-# @pytest.mark.parametrize("phi, m, _", test_cases_f)
-# def test_fused_form_equality_e(phi, m, _):
-#     e1 = einc(phi, m)
-#     _, e2 = legendre.ellip_finc_einc_fused(phi, m)
-#     assert values_match(e1, e2)
