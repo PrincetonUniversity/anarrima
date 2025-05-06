@@ -5,15 +5,18 @@ sin = jnp.sin
 cos = jnp.cos
 sqrt = jnp.sqrt
 
+
 def amplitude_and_parameter(p, z, r, φ):
     """Common inputs to the elliptic integrals"""
-    varφ = φ/2
-    m = - 4 * p * r / ((p - r)**2 + z**2)
+    varφ = φ / 2
+    m = -4 * p * r / ((p - r) ** 2 + z**2)
     return varφ, m
+
 
 def q_term(p, z, r):
     """A common term in the reduced integrals"""
-    return p**4 - 2 * p**2 * (r**2 - z**2) + (r**2 + z**2)**2
+    return p**4 - 2 * p**2 * (r**2 - z**2) + (r**2 + z**2) ** 2
+
 
 ###############################################
 # Key for function names
@@ -24,10 +27,10 @@ def q_term(p, z, r):
 #  |    |   |     |   E - elliptic E coefficient
 #  |    |   |     |   K - elliptic K coefficient
 #  |    |   |     |   F - elliptic F coefficient
-#  |    |   |     |   
+#  |    |   |     |
 #  |    |   |     a - angled field
-#  |    |   |         
-#  |    |   I - Isotropic distribution         
+#  |    |   |
+#  |    |   I - Isotropic distribution
 #  |    |   A - "A-mode" proportional to sin²θ
 #  |    |   B - "B-mode" proportional to 1 + cos²θ
 #  |    |   c - cos²θ, used to make the B-mode
@@ -36,7 +39,7 @@ def q_term(p, z, r):
 #  |    V - vertical-normal component
 #  |
 #  g - reduced integrals
-#  h - individual terms which sum to g; also has a 
+#  h - individual terms which sum to g; also has a
 
 
 ###############################################
@@ -45,16 +48,20 @@ def q_term(p, z, r):
 # Isotropic horizontal same height
 ##################################
 
+
 # used for testing
 def g_HI_same_height(*, p, r, φ):
-    h_HI_same_height_L = (4 * p**2 * sin(φ)) / \
-            ((p**2 - r**2) * sqrt(p**2 + r**2 - 2*p*r*cos(φ)))
+    h_HI_same_height_L = (4 * p**2 * sin(φ)) / (
+        (p**2 - r**2) * sqrt(p**2 + r**2 - 2 * p * r * cos(φ))
+    )
 
     varφ, m = amplitude_and_parameter(p, 0, r, φ)
-    h_HI_same_height_E = 2*p * ellipeinc(varφ, m) / (r * (p + r))
-    h_HI_same_height_K = -2*p * ellipfinc(varφ, m) / (r * (p - r))
+    h_HI_same_height_E = 2 * p * ellipeinc(varφ, m) / (r * (p + r))
+    h_HI_same_height_K = -2 * p * ellipfinc(varφ, m) / (r * (p - r))
     return h_HI_same_height_L + h_HI_same_height_E + h_HI_same_height_K
 
+
+# fmt: off
 
 #########################
 # Isotropic horizontal
@@ -729,3 +736,5 @@ def g_VBa(p, z, r, α, β, φ):
     h_VBaE = frac * numer * ellipeinc(varφ, m)
 
     return h_VBaL + h_VBaF + h_VBaE
+
+# fmt: on
