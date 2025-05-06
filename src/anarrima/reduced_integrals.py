@@ -235,7 +235,7 @@ def g_HB(p, z, r, φ):
 
     # First term (h_HcL)
     frac = sinφ / (2 * q * (p2 + r2 + z2 - 2*p*r*cosφ)**(3/2))
-    term_1 = 4 * p6 + (r2 + z2)**2 * (r2 + 2 * z2)   
+    term_1 = 4 * p6 + (r2 + z2)**2 * (r2 + 2 * z2)
     term_2 = p4 * (r2 + 10 * z2) + p2 * (-6 * r4 + 6 * r2 * z2 + 8 * z4)
     term_3 = - p * r * (9 * p4 + r4 + 6 * r2 * z2 + 5 * z4 + 2 * p2 * (-5 * r2 + 7 * z2))
     numer_L = term_1 + term_2 + term_3 * cosφ
