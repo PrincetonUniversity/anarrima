@@ -1,8 +1,9 @@
-from anarrima.elliptic.carlson import rf as elliprf
-from anarrima.elliptic.carlson import _rf as _elliprf
-from anarrima.elliptic.carlson import rd as elliprd
 import jax
 import jax.numpy as jnp
+
+from anarrima.elliptic.carlson import _rf as _elliprf
+from anarrima.elliptic.carlson import rd as elliprd
+from anarrima.elliptic.carlson import rf as elliprf
 
 sqrt = jnp.sqrt
 sin = jnp.sin

@@ -1,6 +1,7 @@
-import anarrima.elliptic.carlson as carlson
 import pytest
 from pytest import approx
+
+import anarrima.elliptic.carlson as carlson
 
 rf = carlson.rf
 rd = carlson.rd

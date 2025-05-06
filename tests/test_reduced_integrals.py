@@ -1,6 +1,7 @@
-import anarrima.reduced_integrals as g
 import jax.numpy as jnp
 from pytest import approx
+
+import anarrima.reduced_integrals as g
 
 π = jnp.pi
 

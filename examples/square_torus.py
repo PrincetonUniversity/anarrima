@@ -1,6 +1,7 @@
-from anarrima import reduced_integrals
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
+from anarrima import reduced_integrals
 
 #### Locations of walls
 

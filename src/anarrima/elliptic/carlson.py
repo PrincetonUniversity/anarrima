@@ -1,10 +1,11 @@
 import jax
 
 jax.config.update("jax_enable_x64", True)
-import jax.numpy as jnp
-from jax.lax import scan
-from jax import custom_jvp
 from functools import partial
+
+import jax.numpy as jnp
+from jax import custom_jvp
+from jax.lax import scan
 
 sqrt = jnp.sqrt
 

@@ -1,17 +1,14 @@
-import anarrima.elliptic.legendre as legendre
+import jax
 from utils import values_match
 
-import jax
+import anarrima.elliptic.legendre as legendre
 
 jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
-from jax import grad
-
 import mpmath as mp
-
 import pytest
-from pytest import approx
-from pytest import mark
+from jax import grad
+from pytest import approx, mark
 
 INF = jnp.inf
 PI2 = jnp.pi / 2

@@ -1,4 +1,5 @@
 import jax.numpy as jnp
+
 from anarrima.elliptic.legendre import ellipeinc, ellipfinc
 
 sin = jnp.sin
