@@ -48,10 +48,30 @@ def t_contact(w, p, z, x, m):
     """
     xp = x + m * z
     radicand = (w**2 - x**2) * (p**2 - xp**2)
+    radicand = jnp.where(radicand > 0, radicand, 1.0)
     numer = -(x**2) + w**2 - sqrt(radicand)
     denom = -(p**2) + w**2 + (xp**2 - x**2)
     t = numer / denom
-    return t
+    t_fixed = jnp.where(radicand > 0, t, -1.0)
+    return t_fixed
+
+
+def cosine_of_limiting_angle_self(w, p, z, _, m):
+    """Cosine of maximum visible source ring angle
+
+    Args:
+      w: arraylike, real-valued. Radius of wall point.
+      p: arraylike, real-valued. Radius of source ring.
+      z: arraylike, real-valued. Relative height of source ring.
+      _: where x would go.
+      m: arraylike, real-valued. Slope of potentially-limiting wall element.
+
+             x(x + m z)
+    cos φm = ----------
+                p w
+
+    """
+    return (w + m * z) / p
 
 
 def cosine_of_limiting_angle(w, p, z, x, m):
@@ -71,10 +91,12 @@ def cosine_of_limiting_angle(w, p, z, x, m):
     """
     xp = x + m * z
     radicand = (w**2 - x**2) * (p**2 - xp**2)
+    radicand = jnp.where(radicand > 0, radicand, 1.0)
     numer = x * xp - sqrt(radicand)
     denom = p * w
     u1 = numer / denom
-    return u1
+    u1_fixed = jnp.where(radicand > 0, u1, -1.0)
+    return u1_fixed
 
 
 # algorithm:
