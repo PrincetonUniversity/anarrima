@@ -3,7 +3,7 @@ import jax.numpy as jnp
 from anarrima.ray_cone import cosine_of_limiting_angle, r_contact, t_contact
 
 
-def segment_is_outward_facing(r, z):
+def _segment_is_outward_facing(r, z):
     # Get consecutive pairs for segments
     z_closed = jnp.append(z, 0)
     z1, z2 = z_closed[:-1], z_closed[1:]
@@ -21,13 +21,13 @@ def wall_point(r, z, i, t):
         i: index of wall
         t: lerp parameter along segment [0, 1]
     """
-    r0, r1, z0, z1 = p0p1(r, z)
+    r0, r1, z0, z1 = _p0p1(r, z)
     r_wall = r0[i] * (1 - t) + r1[i] * t
     z_wall = z0[i] * (1 - t) + z1[i] * t
     return r_wall, z_wall
 
 
-def p0p1(r, z):
+def _p0p1(r, z):
     r0 = r
     r1 = jnp.roll(r, -1)
     z0 = z
@@ -35,30 +35,30 @@ def p0p1(r, z):
     return r0, r1, z0, z1
 
 
-def get_ms(r, z):
+def _get_ms(r, z):
     # might need a trick here to avoid nans in gradients for flat bits?
-    r0, r1, z0, z1 = p0p1(r, z)
+    r0, r1, z0, z1 = _p0p1(r, z)
 
     rdiff = r1 - r0  # rise
     zdiff = z1 - z0  # run
     return rdiff / zdiff
 
 
-def x_of_segments_at_height_of_w(r0, z0, m, zw):
+def _x_of_segments_at_height_of_w(r0, z0, m, zw):
     x = r0 - m * (z0 - zw)
     return x
 
 
 def visible_angle(r, z, i, t, rp, zp):
-    m = get_ms(r, z)
+    m = _get_ms(r, z)
     finite_m = jnp.isfinite(m)
-    facing_outward = segment_is_outward_facing(r, z)
+    facing_outward = _segment_is_outward_facing(r, z)
 
     rw, zw = wall_point(r, z, i, t)
 
     # z_rel = z - zw # relative to wall point
     zp_rel = zp - zw
-    x = x_of_segments_at_height_of_w(r, z, m, zw)
+    x = _x_of_segments_at_height_of_w(r, z, m, zw)
 
     # ray_cone functions need w=rw, p=rp, zp=zp_rel, x=x, m=m
     r_c = r_contact(w=rw, p=rp, z=zp_rel, x=x, m=m)
