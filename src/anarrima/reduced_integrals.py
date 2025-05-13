@@ -168,21 +168,24 @@ def g_HA(p, z, r, φ):
     sinφ = sin(φ)
     cosφ = cos(φ)
     z2 = z**2
+    r2 = r**2
     p2 = p**2
+    r4 = r2**2
+    z4 = z2**2
 
     # L term
     numerator1 = -2 * sinφ * (
-        -4*p**6 + r**6 - 6*p**4*z2 + 2*z**6 + 2*r**4*(p2 + 2*z2) +
-        r**2*(p2 + z2)*(p2 + 5*z2) -
-        p*r*(-7*p**4 + r**4 - 2*p2*z2 + 5*z**4 + 6*r**2*(p2 + z2))*cosφ
+        -4*p**6 + r**6 - 6*p**4*z2 + 2*z**6 + 2*r4*(p2 + 2*z2) +
+        r2*(p2 + z2)*(p2 + 5*z2) -
+        p*r*(-7*p**4 + r4 - 2*p2*z2 + 5*z4 + 6*r2*(p2 + z2))*cosφ
     )
-    denominator1 = 3 * q * (p2 + r**2 + z2 - 2*p*r*cos(φ))**(3/2)
+    denominator1 = 3 * q * (p2 + r2 + z2 - 2*p*r*cos(φ))**(3/2)
     h_HAL = numerator1 / denominator1
 
-    h_HAF = 2*(-p2 + r**2 + 2*z2)*ellipfinc(varφ, m) / \
+    h_HAF = 2*(-p2 + r2 + 2*z2)*ellipfinc(varφ, m) / \
             (3*p*r*sqrt((p - r)**2 + z2))
 
-    h_HAE = -2*sqrt((p - r)**2 + z2)*(-p**4 + r**4 + (p2 + 3*r**2)*z2 + 2*z**4)* \
+    h_HAE = -2*sqrt((p - r)**2 + z2)*(-p**4 + r4 + (p2 + 3*r**2)*z2 + 2*z**4)* \
             ellipeinc(varφ, m)/(3*p*q*r)
 
     return h_HAL + h_HAF + h_HAE
