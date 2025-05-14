@@ -1,6 +1,13 @@
 import jax.numpy as jnp
 
-from anarrima.ray_cone import cosine_of_limiting_angle, r_contact, t_contact
+from anarrima.ray_cone import (
+    cosine_of_limiting_angle,
+    cosine_of_limiting_angle_self,
+    r_contact,
+    t_contact,
+)
+
+BIGNUM = 1e9
 
 
 def _segment_is_outward_facing(r, z):
@@ -36,12 +43,17 @@ def _p0p1(r, z):
 
 
 def _get_ms(r, z):
-    # might need a trick here to avoid nans in gradients for flat bits?
+    """Inverse slopes of wall segments"""
+    # This gets an "inverse slope"
     r0, r1, z0, z1 = _p0p1(r, z)
 
     rdiff = r1 - r0  # rise
     zdiff = z1 - z0  # run
-    return rdiff / zdiff
+    safe_divisor = 1 / BIGNUM
+    zdiff_ok = zdiff != 0.0
+    ok_divisor = jnp.where(zdiff_ok, zdiff, safe_divisor)
+    m_inv = jnp.where(zdiff_ok, rdiff / ok_divisor, rdiff / safe_divisor)
+    return m_inv
 
 
 def _x_of_segments_at_height_of_w(r0, z0, m, zw):
@@ -64,9 +76,9 @@ def visible_angle(r, z, i, t, rp, zp):
     r_c = r_contact(w=rw, p=rp, z=zp_rel, x=x, m=m)
     t_c = t_contact(w=rw, p=rp, z=zp_rel, x=x, m=m)
     u = cosine_of_limiting_angle(w=rw, p=rp, z=zp_rel, x=x, m=m)
+    u_self = cosine_of_limiting_angle_self(w=rw, p=rp, z=zp_rel, _=x, m=m)
 
-    # print(u[i] == u_self[i])
-    # u = u.at[i].set(u_self[i])
+    u = u.at[i].set(u_self[i])
 
     t_c_okay = (t_c >= 0) & (t_c <= 1)  # contact is along the ray
     positive_r_c = r_c >= 0

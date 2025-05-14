@@ -2,6 +2,8 @@ import jax.numpy as jnp
 
 sqrt = jnp.sqrt
 
+SAFE_SQUARE_ROOT_VAL = 1.0
+
 
 def r_contact(w, p, z, x, m):
     """Radius of tangency for potentially-blocking wall segment
@@ -47,13 +49,15 @@ def t_contact(w, p, z, x, m):
       array of cone frustum contact parameters
     """
     xp = x + m * z
-    radicand = (w**2 - x**2) * (p**2 - xp**2)
-    radicand = jnp.where(radicand > 0, radicand, 1.0)
-    numer = -(x**2) + w**2 - sqrt(radicand)
-    denom = -(p**2) + w**2 + (xp**2 - x**2)
+    x2, w2, p2, xp2 = w**2, x**2, p**2, xp**2
+    radicand = (w2 - x2) * (p2 - xp2)
+    test = (radicand > 0) & jnp.isfinite(radicand)
+    radicand_fixed = jnp.where(test, radicand, SAFE_SQUARE_ROOT_VAL)
+    root = jnp.where(test, sqrt(radicand_fixed), 0.0)
+    numer = -x2 + w2 - root
+    denom = -p2 + w2 + (xp2 - x2)
     t = numer / denom
-    t_fixed = jnp.where(radicand > 0, t, -1.0)
-    return t_fixed
+    return t
 
 
 def cosine_of_limiting_angle_self(w, p, z, _, m):
@@ -80,7 +84,7 @@ def cosine_of_limiting_angle(w, p, z, x, m):
     Args:
       w: arraylike, real-valued. Radius of wall point.
       p: arraylike, real-valued. Radius of source ring.
-      z: arraylike, real-valued. Relative height of source ring.
+      z: arraylike, real-valued. Rel. height of source ring to wall point.
       m: arraylike, real-valued. Slope of potentially-limiting wall element.
       x: arraylike, real-valued. Radius of the element at wall point height.
 
@@ -89,14 +93,18 @@ def cosine_of_limiting_angle(w, p, z, x, m):
                                 p w
 
     """
-    xp = x + m * z
+    xp = x + m * z  # future: avoid ∞ * 0 = 0?
     radicand = (w**2 - x**2) * (p**2 - xp**2)
-    radicand = jnp.where(radicand > 0, radicand, 1.0)
-    numer = x * xp - sqrt(radicand)
+    # I don't understand quite why I need this
+    test = radicand > 0 & jnp.isfinite(radicand)
+    radicand_fixed = jnp.where(test, radicand, SAFE_SQUARE_ROOT_VAL)
+    root = jnp.where(test, sqrt(radicand_fixed), 0.0)
+    numer = x * xp - root
     denom = p * w
     u1 = numer / denom
-    u1_fixed = jnp.where(radicand > 0, u1, -1.0)
-    return u1_fixed
+    # secondary gutter
+    # u1_fixed = jnp.where(radicand < 0, -1.0, u1)
+    return u1
 
 
 # algorithm:
