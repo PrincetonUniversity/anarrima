@@ -2,4 +2,4 @@
 
 "The Sun-border"
 
-Calculate neutron wall loads from axisymmetric plasmas in axisymmetric geometries
+Calculate neutron wall loads from axisymmetric plasmas in axisymmetric geometries.
