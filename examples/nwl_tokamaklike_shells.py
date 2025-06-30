@@ -383,7 +383,7 @@ for wl in loadings[::-1]:
     print(f"B/C modes {float(wl)}: " + _.message)
 
 
-fig, axs = plt.subplots(1, 3, figsize=(10, 6), layout="constrained", sharey=True)
+fig, axs = plt.subplots(1, 3, figsize=(8, 4), layout="constrained", sharey=True)
 
 for wl, a in xs_A.items():
     plot_an_x(axs[0], a, n_points=120, lw=0.5, color="red")
@@ -428,7 +428,7 @@ axs[0].set_title("A mode")
 axs[1].set_title("Isotropic mode")
 axs[2].set_title("B/C modes")
 axs[1].text(0.2, 0.14, r"4.8")
-axs[1].text(0.265, 0.023, "7.0")
+axs[1].text(0.252, 0.023, "7.0")
 
 plt.savefig("nwl_tokamaklike_shells.pdf")
 plt.show()
